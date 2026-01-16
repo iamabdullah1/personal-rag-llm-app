@@ -1,0 +1,54 @@
+# Abdullah Akram - Technical Skills
+
+## Tech Stack
+I specialize in a variety of languages, frameworks, and AI tools that allow me to build robust and scalable applications.
+
+## Frontend Technologies
+- **React.js**: Building interactive user interfaces with modern React patterns
+- **Next.js**: Server-side rendering, static site generation, and API routes
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
+- **GSAP**: Advanced animations and ScrollTrigger for interactive experiences
+- **Three.js**: 3D graphics and interactive 3D models integration
+- **Sketchfab Integration**: Embedding and working with 3D models
+- **Chart.js**: Data visualization and performance tracking dashboards
+
+## Backend Technologies
+- **Node.js**: Server-side JavaScript runtime
+- **Express.js**: RESTful API development and middleware
+- **MongoDB**: NoSQL database design and optimization
+- **JWT Authentication**: Secure token-based authentication systems
+- **WebSockets**: Real-time communication features
+- **REST APIs**: Designing and implementing robust API architectures
+
+## Full-Stack Frameworks
+- **MERN Stack**: MongoDB, Express.js, React.js, Node.js
+- **Next.js Full-Stack**: Server-side rendering, API routes, and dynamic routing
+
+## Advanced Features
+- **Role-Based Access Control (RBAC)**: Multi-level user authentication and authorization
+- **Server-Side Rendering (SSR)**: Next.js SSR for improved performance and SEO
+- **Incremental Static Regeneration (ISR)**: Dynamic content with static benefits
+- **Code Splitting**: Performance optimization techniques
+- **Image Optimization**: Next.js image optimization features
+
+## Physics & Animations
+- **Matter.js**: Physics engines for collision effects and draggable components
+- **GSAP**: Professional-grade animations
+- **ScrollTrigger**: Scroll-based animations and interactions
+
+## Development Practices
+- **Agile Methodology**: Sprint planning and iterative development
+- **API Integration**: Third-party service integration
+- **Performance Optimization**: Load time reduction and efficiency improvements
+- **Database Optimization**: Query optimization and schema design
+- **Security Best Practices**: JWT, encrypted communications, secure authentication
+
+## Additional Skills
+- Protected Routes implementation
+- Form Validation (dynamic and advanced)
+- Employee Management Systems
+- Invoice and Billing Systems
+- Real-time Chat Applications
+- Live Dashboards
+- CRM Integration
+- Project Management Tools

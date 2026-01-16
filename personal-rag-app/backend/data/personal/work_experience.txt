@@ -1,0 +1,43 @@
+# Abdullah Akram - Work Experience
+
+## Current Position
+
+### Full-Stack Developer (Next.js & MERN) | 2025 - Present
+**Freelance & Personal Projects**
+
+- Specialized in building production-ready web applications with Next.js, MERN stack, and Tailwind CSS
+- Created interactive portfolios and client projects featuring 3D models with Three.js, Sketchfab integration, and GSAP animations
+- Developed secure, full-stack applications with API routes, server-side rendering (SSR), dynamic routing, and authentication in Next.js
+- Implemented real-time features like chat apps and live dashboards using WebSockets and REST API integrations
+- Explored physics engines (Matter.js) and 3D interactions to build immersive web experiences with collision effects and draggable components
+- Optimized frontend performance with Next.js features like Image Optimization, ISR (Incremental Static Regeneration), and code splitting
+- Continuously enhancing technical expertise and contributing to freelance projects with cutting-edge web technologies and AI-powered integrations
+
+## Previous Positions
+
+### Full-Stack Developer (MERN) | 2024 - 2025
+**Apexez, Lahore**
+
+- Designed and developed RESTful APIs with Node.js and Express.js, enabling robust backend services
+- Implemented role-based authentication and authorization using JWT, ensuring secure access across different user types
+- Designed MongoDB schemas and queries optimized for high-volume transactional data
+- Built advanced features such as automated bilty generation, invoice systems, and dynamic form validation for logistics applications
+- Collaborated in Agile sprints, fixing backend issues and improving API reliability by ~20%
+
+### Frontend Developer | 2023 - 2024
+**Meldin, Lahore**
+
+- Developed scalable and responsive UIs using React.js, Tailwind CSS, and modern frontend practices
+- Built a fully functional Employee Management Dashboard with protected routes, JWT-based authentication, and Chart.js visualizations for performance tracking
+- Integrated REST APIs with frontend components, ensuring smooth and secure data communication
+- Enhanced user experience by implementing GSAP animations and ScrollTrigger for interactive interfaces
+- Optimized frontend performance, reducing initial load times by ~30% through code splitting and asset optimization
+
+## Key Achievements Across Roles
+
+- **Performance Improvements**: Reduced load times by 30% through optimization
+- **Reliability Enhancement**: Improved API reliability by 20%
+- **Security Implementation**: JWT-based authentication across multiple projects
+- **Real-time Features**: WebSockets integration for live applications
+- **3D Experiences**: Three.js and physics engine integration
+- **Global Collaboration**: Successfully worked with international clients across different time zones

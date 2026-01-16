@@ -1,0 +1,47 @@
+# Contact Information - Abdullah Akram
+
+## Get In Touch
+Whether you're looking to build a new website, improve your existing platform, or bring a unique project to life, I'm here to help.
+
+## Professional Identity
+- **Name**: Abdullah Akram
+- **Role**: Full-Stack Developer (MERN & Next.js Specialist)
+- **Portfolio**: https://abdullahakram.me
+
+## Location & Availability
+- **Based in**: Pakistan
+- **Available for**: Remote projects worldwide
+- **Time Zone Flexibility**: Can adjust schedule to match client time zones
+- **Work Style**: Flexible, responsive, and available for urgent requests
+
+## Services Offered
+- Full-Stack Web Development (MERN Stack)
+- Next.js Application Development
+- React.js Frontend Development
+- Node.js Backend Development
+- API Design and Integration
+- 3D Web Experiences (Three.js)
+- Real-time Applications (WebSockets)
+- E-commerce Solutions
+- Management Information Systems
+- Custom Web Applications
+
+
+## Contact Methods
+For inquiries, collaborations, or project discussions:
+- Visit my portfolio at abdullahakram.me
+- Use the contact form on the website
+- Available for immediate response on urgent matters
+
+## Working Hours
+Flexible scheduling with global clients. Can accommodate:
+- US time zones
+- European time zones
+- Asia-Pacific time zones
+- Middle East time zones
+
+## Response Time
+- Quick responses to inquiries
+- Available for urgent updates and fixes
+- Regular progress updates
+- Proactive communication throughout projects

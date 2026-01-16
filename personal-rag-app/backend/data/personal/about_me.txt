@@ -1,0 +1,18 @@
+# About Abdullah Akram
+
+## Introduction
+Hi, I'm Abdullah Akram, a passionate Full-Stack Developer specializing in the MERN stack and Next.js. I craft modern, scalable, and interactive web applications that blend clean UI with powerful backend logic.
+
+## Location & Availability
+Based in Pakistan, available for remote projects worldwide. Flexible with time zones and focused on smooth collaboration.
+
+## Core Values
+- CODE IS CRAFT: I believe in writing clean, maintainable code
+- Clean Code: Every line serves a purpose
+- Problem Solving: Creative solutions to complex challenges
+- UI/UX Focus: User experience is paramount
+- Performance Optimized: Speed and efficiency matter
+- Scalable Design: Built to grow with your needs
+
+## Professional Identity
+A Developer dedicated to crafting modern web solutions. I combine technical expertise with creative problem-solving to deliver exceptional results for clients worldwide.
