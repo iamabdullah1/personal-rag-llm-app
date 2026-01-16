@@ -12,6 +12,7 @@ venv.bak/
 
 # Virtual environments
 .venv/
+.venv312/
 
 # IDE
 .vscode/
