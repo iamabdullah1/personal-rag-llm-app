@@ -3,11 +3,39 @@
 ## Tech Stack
 I specialize in a variety of languages, frameworks, and AI tools that allow me to build robust and scalable applications.
 
+## AI & Machine Learning
+- **RAG (Retrieval Augmented Generation)**: Building intelligent AI systems that retrieve and generate contextual responses
+- **LangChain**: Orchestrating LLM applications, chains, and agents
+- **Agentic AI**: Developing autonomous AI agents that can reason and take actions
+- **Vector Databases**: ChromaDB, Pinecone for semantic search and embeddings storage
+- **Embeddings**: Sentence Transformers, HuggingFace embeddings for semantic understanding
+- **LLM Integration**: HuggingFace Inference API, OpenAI-compatible APIs
+- **Semantic Search**: Building intelligent search systems using vector similarity
+- **Semantic Caching**: Optimizing AI responses with similarity-based caching
+- **Prompt Engineering**: Crafting effective system prompts for LLMs
+- **PyTorch**: Machine learning framework for AI model execution
+- **Sentence Transformers**: Text embeddings (all-MiniLM-L6-v2)
+
+## Python & Automation
+- **Python**: Core programming for AI/ML and backend services
+- **FastAPI**: High-performance Python web APIs with async support
+- **Automation Scripts**: Building automated workflows and data pipelines
+- **Web Scraping**: BeautifulSoup, Selenium, DuckDuckGo search integration, data extraction
+- **Pydantic**: Data validation and settings management
+
+## Data Science & Analytics
+- **Data Analysis**: Pandas, NumPy for data manipulation and analysis
+- **Data Visualization**: Matplotlib, Chart.js for insights and reporting
+- **Data Extraction**: Web scraping, API data collection, ETL pipelines
+- **Data Cleaning**: Preprocessing and transforming raw data
+- **Statistical Analysis**: Data-driven decision making
+
 ## Frontend Technologies
 - **React.js**: Building interactive user interfaces with modern React patterns
 - **Next.js**: Server-side rendering, static site generation, and API routes
 - **Tailwind CSS**: Utility-first CSS framework for rapid UI development
 - **GSAP**: Advanced animations and ScrollTrigger for interactive experiences
+- **Framer Motion**: Declarative animations for React applications
 - **Three.js**: 3D graphics and interactive 3D models integration
 - **Sketchfab Integration**: Embedding and working with 3D models
 - **Chart.js**: Data visualization and performance tracking dashboards
@@ -19,10 +47,12 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - **JWT Authentication**: Secure token-based authentication systems
 - **WebSockets**: Real-time communication features
 - **REST APIs**: Designing and implementing robust API architectures
+- **Uvicorn**: ASGI server for Python async applications
 
 ## Full-Stack Frameworks
 - **MERN Stack**: MongoDB, Express.js, React.js, Node.js
 - **Next.js Full-Stack**: Server-side rendering, API routes, and dynamic routing
+- **FastAPI + React**: Python backend with React frontend
 
 ## Advanced Features
 - **Role-Based Access Control (RBAC)**: Multi-level user authentication and authorization
@@ -30,11 +60,13 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - **Incremental Static Regeneration (ISR)**: Dynamic content with static benefits
 - **Code Splitting**: Performance optimization techniques
 - **Image Optimization**: Next.js image optimization features
+- **OTP Verification**: One-time password security implementation
 
 ## Physics & Animations
 - **Matter.js**: Physics engines for collision effects and draggable components
 - **GSAP**: Professional-grade animations
 - **ScrollTrigger**: Scroll-based animations and interactions
+- **Framer Motion**: Smooth page transitions and micro-interactions
 
 ## Development Practices
 - **Agile Methodology**: Sprint planning and iterative development
@@ -42,6 +74,7 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - **Performance Optimization**: Load time reduction and efficiency improvements
 - **Database Optimization**: Query optimization and schema design
 - **Security Best Practices**: JWT, encrypted communications, secure authentication
+- **Git & Version Control**: GitHub, branching strategies, collaborative development
 
 ## Additional Skills
 - Protected Routes implementation
@@ -52,3 +85,5 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - Live Dashboards
 - CRM Integration
 - Project Management Tools
+- Lead Management Systems
+- Multi-Portal Applications (Admin, User, Consultant portals)

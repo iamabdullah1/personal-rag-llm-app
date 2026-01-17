@@ -3,11 +3,11 @@
 ## Project 1: Education Consultancy Website
 
 ### Description
-Provides guidance for students aspiring to study abroad, offering consultancy services for university admissions, visa processes, and more.
+A comprehensive education consultancy platform that provides guidance for students aspiring to study abroad. It offers end-to-end consultancy services for university admissions, visa processes, and personalized consultant meetings.
 
 ### Technologies Used
 - React.js
-- GSAP
+- GSAP (GreenSock Animation Platform)
 - Node.js
 - Tailwind CSS
 - MongoDB
@@ -18,16 +18,21 @@ Live and View More available
 
 ### Key Features
 - University admission guidance
-- Visa consultancy services
-- Student consultation booking
-- Information management system
+- Visa consultation services
+- Meeting scheduling with consultants
+- **Multi-Portal System:**
+  - Admin Portal (full system control)
+  - Consultant Portal (manage students & appointments)
+  - Student Portal (track applications & bookings)
+- All portals have protected routes with role-based authentication
+- Complete information management system
 
 ---
 
 ## Project 2: Management Information System (MIS) for Software Company
 
 ### Description
-A comprehensive platform for managing employee attendance, payroll, leave, projects, CRM, and complaints in a software company.
+A comprehensive enterprise-level platform for managing all aspects of a software company's operations including HR, payroll, attendance, projects, and customer relationships. This is an ERP-style management software.
 
 ### Technologies Used
 - React.js
@@ -41,20 +46,25 @@ A comprehensive platform for managing employee attendance, payroll, leave, proje
 Live with source code available
 
 ### Key Features
-- Employee attendance tracking
-- Payroll management
-- Leave management system
+- **Payroll Management:** Salary processing, deductions, and payment tracking
+- **Leave Management:** Leave requests, approvals, and balance tracking
+- **Application Management:** Job applications and hiring workflow
+- **Employee Attendance Tracking:** Clock-in/out, attendance reports
+- **CRM Integration:** 
+  - Lead management for business development team
+  - Lead classification: Hot, Cold, Warm, Lost
+  - Complete sales pipeline tracking
 - Project management
-- CRM integration
 - Complaint handling system
 - Comprehensive admin dashboard
+- Protected routes for all modules
 
 ---
 
 ## Project 3: Visitor Management System
 
 ### Description
-Role-based visitor management system built with React.js for organizations to track visitors, manage users, and ensure security.
+Role-based visitor management system built for organizations to track visitors, manage users, and ensure security. Similar to enterprise visitor management solutions.
 
 ### Technologies Used
 - React.js
@@ -71,6 +81,57 @@ Live with source code available
 - Security monitoring
 - Admin dashboard
 - Real-time visitor status
+
+---
+
+## Project 4: Personal Portfolio Website
+
+### Description
+A stunning personal portfolio website showcasing my work with advanced animations, 3D visualizations, and interactive physics-based elements.
+
+### Technologies Used
+- React.js
+- GSAP (GreenSock Animation Platform)
+- Framer Motion
+- Three.js (3D rendering)
+- Matter.js (Physics engine)
+
+### Key Features
+- **3D Model Visualization:** Interactive 3D rendered modules
+- **Real-Time Physics Engine:** Draggable components with collision effects
+- Smooth page transitions and scroll animations
+- Modern, responsive design
+- Interactive project showcases
+
+---
+
+## Project 5: Investx - Real Estate Tokenization Platform
+
+### Description
+An innovative e-commerce/fintech platform that tokenizes real estate (apartments and land) into smaller chunks, allowing multiple buyers to invest in property with smaller portions. This democratizes real estate investment for middle-class and lower-income individuals who previously couldn't afford full property purchases.
+
+### Technologies Used
+- Next.js
+- React.js
+- Node.js
+- Tailwind CSS
+- MongoDB
+
+### Status
+Highly Developed MVP
+
+### Key Features
+- **Property Tokenization:** Apartments and land divided into purchasable tokens
+- **Target Audience:** Middle class and lower-income investors
+- **Multi-Role System with 4 Sections:**
+  - Guest (browse properties)
+  - Investor (buy tokens, track portfolio)
+  - Admin (full platform control)
+  - Semi-Admin (limited administrative access)
+- All routes are protected with role-based authentication
+- OTP (One-Time Password) verification for security
+- Investment tracking and portfolio management
+- Property listing and management
 
 ---
 

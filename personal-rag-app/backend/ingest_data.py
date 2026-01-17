@@ -2,7 +2,7 @@
 Ingest personal documents into vector database
 """
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.services.vectorstore import vectorstore_service
 import shutil
 import os

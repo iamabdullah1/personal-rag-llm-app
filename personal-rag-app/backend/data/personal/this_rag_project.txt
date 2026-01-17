@@ -1,0 +1,161 @@
+# About This RAG Chatbot - Technical Deep Dive
+
+## What Is This Project?
+
+This is a Personal RAG (Retrieval-Augmented Generation) Application - an AI-powered portfolio chatbot that I built myself. It allows visitors to ask questions about me (Abdullah Akram) and get intelligent, contextual responses. This is not a simple FAQ bot - it actually understands the meaning behind questions and retrieves relevant information from my personal data.
+
+## The Science Behind It
+
+### What is RAG?
+
+RAG stands for Retrieval-Augmented Generation. Instead of relying only on an LLM's training data, RAG:
+1. **Retrieves** relevant information from my personal documents
+2. **Augments** the LLM prompt with this context
+3. **Generates** a response based on my actual data
+
+This means the chatbot gives accurate answers about ME, not generic responses.
+
+### How Does It Work?
+
+#### Step 1: Data Ingestion (One-Time Setup)
+- My personal information is stored in text files (about me, skills, projects, education, etc.)
+- These documents are split into smaller chunks (1000 characters with 200 overlap)
+- Each chunk is converted into a 384-dimensional vector using sentence-transformers/all-MiniLM-L6-v2
+- These vectors are stored in ChromaDB (a local vector database)
+
+#### Step 2: When You Ask a Question
+1. Your question is converted into a vector (same embedding model)
+2. ChromaDB finds the most similar document chunks (semantic search)
+3. The system checks if it's a personal question or general knowledge question
+4. For personal questions: uses my stored data
+5. For general questions: searches DuckDuckGo for web information
+6. All context is combined and sent to the LLM (Qwen2.5-7B-Instruct)
+7. The LLM generates a first-person response as if it were me
+
+#### Step 3: Intelligent Caching
+- The system has a two-level semantic cache
+- Level 1: If your question is 85%+ similar to a previous question, it returns the cached answer instantly
+- Level 2: Similar past Q&As are used as context for better consistency
+
+## Technology Stack
+
+### Frontend
+- **React.js**: User interface
+- **Vite**: Fast build tool
+- **Axios**: API communication
+
+### Backend
+- **FastAPI**: Python web framework (high performance, async)
+- **Python 3.12**: Core programming language
+- **Uvicorn**: ASGI server
+
+### AI/ML Components
+- **LangChain**: Orchestrates the RAG pipeline
+- **sentence-transformers/all-MiniLM-L6-v2**: Embedding model (runs locally with PyTorch)
+- **ChromaDB**: Vector database for storing and searching embeddings
+- **HuggingFace Inference API**: LLM provider (Qwen2.5-7B-Instruct model)
+- **Semantic Cache**: Custom-built similarity-based caching system
+
+### External Services
+- **HuggingFace**: Free LLM API for text generation
+- **DuckDuckGo**: Free web search for general knowledge questions
+
+## Key Features
+
+### Semantic Understanding
+Unlike keyword search, this system understands meaning. "What can you do?" and "What are your skills?" will return the same relevant information because they have similar semantic meaning.
+
+### Multi-Source Context
+The chatbot combines multiple information sources:
+- Personal documents (about me, skills, projects, education)
+- Previous similar Q&As from cache
+- Web search results (for general knowledge)
+- Conversation history (remembers context within a session)
+
+### First-Person Responses
+The LLM is instructed to respond AS me (Abdullah Akram), saying "I have built..." instead of "Abdullah has built...". This creates a more personal, engaging experience.
+
+### Protected Personal Data
+All my personal information is stored locally in text files and the ChromaDB database. The LLM doesn't store my data - it only uses it as context when generating responses.
+
+## Why I Built This
+
+I built this project to:
+1. Showcase my AI/ML and full-stack development skills
+2. Create an interactive portfolio experience for visitors
+3. Demonstrate practical RAG implementation
+4. Learn and apply cutting-edge AI technologies like LangChain and vector databases
+
+## Technical Specifications
+
+### Embedding Model
+- Model: sentence-transformers/all-MiniLM-L6-v2
+- Dimensions: 384
+- Runs locally using PyTorch
+- No API calls needed for embeddings
+
+### Vector Database
+- Database: ChromaDB
+- Index: HNSW (Hierarchical Navigable Small World)
+- Storage: Local disk (./chroma_db/)
+- Search: Cosine similarity
+
+### LLM
+- Model: Qwen/Qwen2.5-7B-Instruct
+- Provider: HuggingFace Inference API
+- Cost: Free
+- Context window: 128K tokens
+
+### Caching
+- Exact match threshold: 85% similarity
+- Cache TTL: 7 days
+- Max cache size: 1000 Q&A pairs
+
+### Document Processing
+- Chunk size: 1000 characters
+- Chunk overlap: 200 characters
+- Retriever K: 5 documents per query
+
+## How to Ask Questions
+
+You can ask me anything about:
+- My background and who I am
+- My technical skills and technologies I know
+- Projects I've built
+- My education
+- My work experience
+- How to contact me
+- How this chatbot works (like you're doing now!)
+
+For general knowledge questions (like "What is React?"), I'll search the web and provide accurate information.
+
+## Project Structure
+
+```
+personal-rag-app/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI application
+│   │   ├── config.py            # Settings
+│   │   ├── routers/chat.py      # API endpoints
+│   │   └── services/
+│   │       ├── rag_service.py   # Main RAG orchestrator
+│   │       ├── vectorstore.py   # ChromaDB & embeddings
+│   │       ├── semantic_cache.py # Caching system
+│   │       └── conversation_store.py # Session history
+│   ├── data/personal/           # My personal information files
+│   ├── chroma_db/               # Vector database storage
+│   └── ingest_data.py           # Data ingestion script
+└── frontend/
+    └── src/App.jsx              # React chat interface
+```
+
+## Performance
+
+- Cache hit (exact match): ~50ms response time
+- Full pipeline (no cache): 2-3 seconds
+- Embedding generation: ~20ms
+- Vector search: ~50ms
+- LLM API call: ~2 seconds (varies)
+
+This project demonstrates my expertise in AI, machine learning, Python, FastAPI, React, and building production-ready applications.

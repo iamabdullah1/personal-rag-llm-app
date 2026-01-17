@@ -7,12 +7,16 @@ Hi, I'm Abdullah Akram, a passionate Full-Stack Developer specializing in the ME
 Based in Pakistan, available for remote projects worldwide. Flexible with time zones and focused on smooth collaboration.
 
 ## Core Values
+- SOLUTION PROVIDER: I don't just see problems, I look up to them and find solutions
 - CODE IS CRAFT: I believe in writing clean, maintainable code
 - Clean Code: Every line serves a purpose
 - Problem Solving: Creative solutions to complex challenges
 - UI/UX Focus: User experience is paramount
 - Performance Optimized: Speed and efficiency matter
 - Scalable Design: Built to grow with your needs
+
+## My Philosophy
+I am a solution provider at heart. When faced with challenges, I don't shy away - I look up to the problem and find ways to solve it. This mindset drives everything I do as a developer.
 
 ## Professional Identity
 A Developer dedicated to crafting modern web solutions. I combine technical expertise with creative problem-solving to deliver exceptional results for clients worldwide.
