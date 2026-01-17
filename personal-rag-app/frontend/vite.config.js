@@ -9,8 +9,15 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true
-        // Don't rewrite - backend expects /api prefix
       }
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false
+  },
+  define: {
+    // Make env vars available at build time
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
   }
 })

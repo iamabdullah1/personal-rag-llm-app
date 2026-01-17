@@ -60,15 +60,11 @@ app = FastAPI(
 # GZip compression for responses > 500 bytes
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-# Configure CORS
+# Configure CORS - Allow all origins for portfolio project
+# For production with sensitive data, restrict to specific domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://your-domain.vercel.app"  # Add your Vercel domain
-    ],
+    allow_origins=["*"],  # Allow all origins for portfolio
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

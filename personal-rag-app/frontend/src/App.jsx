@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 const STORAGE_KEY = 'rag_session_id'
+// Use environment variable for API URL in production, empty string for local (uses proxy)
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function App() {
   const [messages, setMessages] = useState([])
@@ -29,7 +31,7 @@ function App() {
       
       if (savedSessionId) {
         try {
-          const response = await fetch(`/api/conversation/${savedSessionId}`)
+          const response = await fetch(`${API_BASE}/api/conversation/${savedSessionId}`)
           if (response.ok) {
             const data = await response.json()
             if (data.messages && data.messages.length > 0) {
@@ -78,7 +80,7 @@ function App() {
     abortControllerRef.current = new AbortController()
     
     try {
-      const response = await fetch('/api/chat/stream', {
+      const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +186,7 @@ function App() {
     // Clear from backend if session exists
     if (conversationId) {
       try {
-        await fetch(`/api/conversation/${conversationId}`, { method: 'DELETE' })
+        await fetch(`${API_BASE}/api/conversation/${conversationId}`, { method: 'DELETE' })
       } catch (error) {
         console.log('Error clearing backend session:', error)
       }
