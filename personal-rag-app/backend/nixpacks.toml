@@ -1,0 +1,14 @@
+[project]
+name = "personal-rag-backend"
+
+[nixpacks]
+python_version = "3.12"
+
+[phases.setup]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["python ingest_data.py"]
+
+[start]
+cmd = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
