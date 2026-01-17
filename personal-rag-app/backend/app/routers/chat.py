@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from app.models.schemas import ChatRequest, ChatResponse, HealthResponse
 from app.services.rag_service import rag_service
+from app.services.conversation_store import conversation_store
 from datetime import datetime, timezone
+from typing import Optional
 import json
 import asyncio
 
@@ -17,6 +19,39 @@ async def health_check():
         version="1.0.0",
         timestamp=datetime.now(timezone.utc)
     )
+
+
+@router.get("/conversation/{session_id}")
+async def get_conversation(session_id: str):
+    """
+    Fetch conversation history for a session.
+    Used to restore chat on page reload.
+    """
+    try:
+        history = conversation_store.get_history(session_id)
+        return {
+            "session_id": session_id,
+            "messages": history,
+            "message_count": len(history)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching conversation: {str(e)}"
+        )
+
+
+@router.delete("/conversation/{session_id}")
+async def clear_conversation(session_id: str):
+    """Clear conversation history for a session."""
+    try:
+        conversation_store.clear_session(session_id)
+        return {"status": "cleared", "session_id": session_id}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing conversation: {str(e)}"
+        )
 
 
 @router.post("/chat", response_model=ChatResponse)

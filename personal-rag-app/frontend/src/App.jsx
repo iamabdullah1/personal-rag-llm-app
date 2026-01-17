@@ -2,12 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
 
+const STORAGE_KEY = 'rag_session_id'
+
 function App() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState(null)
   const [streamingMessage, setStreamingMessage] = useState('')
+  const [isRestoring, setIsRestoring] = useState(true)
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
 
@@ -18,6 +21,45 @@ function App() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, streamingMessage])
+
+  // Restore conversation on page load
+  useEffect(() => {
+    const restoreConversation = async () => {
+      const savedSessionId = localStorage.getItem(STORAGE_KEY)
+      
+      if (savedSessionId) {
+        try {
+          const response = await fetch(`/api/conversation/${savedSessionId}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.messages && data.messages.length > 0) {
+              // Convert backend format to frontend format
+              const restoredMessages = data.messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              }))
+              setMessages(restoredMessages)
+              setConversationId(savedSessionId)
+              console.log(`✅ Restored ${data.message_count} messages from session ${savedSessionId}`)
+            }
+          }
+        } catch (error) {
+          console.log('No previous conversation found:', error)
+          localStorage.removeItem(STORAGE_KEY)
+        }
+      }
+      setIsRestoring(false)
+    }
+    
+    restoreConversation()
+  }, [])
+
+  // Save session_id to localStorage whenever it changes
+  useEffect(() => {
+    if (conversationId) {
+      localStorage.setItem(STORAGE_KEY, conversationId)
+    }
+  }, [conversationId])
 
   // Cleanup abort controller on unmount
   useEffect(() => {
@@ -133,15 +175,47 @@ function App() {
     await sendMessageStreaming(userMessage)
   }
 
-  const clearChat = () => {
+  const clearChat = async () => {
     // Abort any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
+    
+    // Clear from backend if session exists
+    if (conversationId) {
+      try {
+        await fetch(`/api/conversation/${conversationId}`, { method: 'DELETE' })
+      } catch (error) {
+        console.log('Error clearing backend session:', error)
+      }
+    }
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEY)
+    
+    // Clear frontend state
     setMessages([])
     setConversationId(null)
     setStreamingMessage('')
     setLoading(false)
+  }
+
+  // Show loading state while restoring
+  if (isRestoring) {
+    return (
+      <div className="chat-container">
+        <div className="chat-header">
+          <h1>💬 Personal RAG Assistant</h1>
+        </div>
+        <div className="messages-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div className="typing">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
