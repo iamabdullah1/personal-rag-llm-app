@@ -31,18 +31,18 @@ function App() {
     try {
       const response = await axios.post('/api/chat', {
         message: userMessage,
-        conversation_id: conversationId
+        session_id: conversationId
       })
 
       // Add assistant response
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: response.data.response 
+        content: response.data.answer 
       }])
 
-      // Store conversation ID for context
-      if (response.data.conversation_id) {
-        setConversationId(response.data.conversation_id)
+      // Store session ID for context
+      if (response.data.session_id) {
+        setConversationId(response.data.session_id)
       }
     } catch (error) {
       console.error('Error:', error)
