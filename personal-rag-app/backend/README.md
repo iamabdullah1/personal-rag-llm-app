@@ -1,3 +1,13 @@
+---
+title: Personal RAG Chatbot API
+emoji: 🤖
+colorFrom: purple
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Personal RAG Application - Backend
 
 ## ✅ Setup Complete!
