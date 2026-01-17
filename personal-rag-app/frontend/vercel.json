@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "${VITE_API_URL}/api/:path*"
+      "destination": "https://abdullah7570-personal-rag-chatbot.hf.space/api/:path*"
     }
   ],
   "buildCommand": "npm run build",
