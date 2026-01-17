@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 function App() {
@@ -7,7 +7,9 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState(null)
+  const [streamingMessage, setStreamingMessage] = useState('')
   const messagesEndRef = useRef(null)
+  const abortControllerRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -15,7 +17,107 @@ function App() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, streamingMessage])
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  const sendMessageStreaming = useCallback(async (userMessage) => {
+    setLoading(true)
+    setStreamingMessage('')
+    
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController()
+    
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          session_id: conversationId
+        }),
+        signal: abortControllerRef.current.signal
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let fullMessage = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              if (data.token) {
+                fullMessage += data.token
+                setStreamingMessage(fullMessage)
+              }
+              
+              if (data.done) {
+                // Finalize message
+                setMessages(prev => [...prev, { 
+                  role: 'assistant', 
+                  content: fullMessage,
+                  sources: data.sources,
+                  cacheHit: data.cache_hit
+                }])
+                setStreamingMessage('')
+                
+                if (data.session_id) {
+                  setConversationId(data.session_id)
+                }
+              }
+              
+              if (data.error) {
+                throw new Error(data.error)
+              }
+            } catch (parseError) {
+              // Skip invalid JSON
+              if (parseError.message !== 'Unexpected end of JSON input') {
+                console.warn('Parse error:', parseError)
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Request aborted')
+        return
+      }
+      
+      console.error('Streaming error:', error)
+      setMessages(prev => [...prev, { 
+        role: 'error', 
+        content: 'Sorry, something went wrong. Please try again.' 
+      }])
+      setStreamingMessage('')
+    } finally {
+      setLoading(false)
+      abortControllerRef.current = null
+    }
+  }, [conversationId])
 
   const sendMessage = async (e) => {
     e.preventDefault()
@@ -26,54 +128,46 @@ function App() {
     
     // Add user message to chat
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
-    setLoading(true)
-
-    try {
-      const response = await axios.post('/api/chat', {
-        message: userMessage,
-        session_id: conversationId
-      })
-
-      // Add assistant response
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: response.data.answer 
-      }])
-
-      // Store session ID for context
-      if (response.data.session_id) {
-        setConversationId(response.data.session_id)
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      setMessages(prev => [...prev, { 
-        role: 'error', 
-        content: 'Sorry, something went wrong. Please try again.' 
-      }])
-    } finally {
-      setLoading(false)
-    }
+    
+    // Use streaming for better UX
+    await sendMessageStreaming(userMessage)
   }
 
   const clearChat = () => {
+    // Abort any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
     setMessages([])
     setConversationId(null)
+    setStreamingMessage('')
+    setLoading(false)
   }
 
   return (
     <div className="chat-container">
       <div className="chat-header">
         <h1>💬 Personal RAG Assistant</h1>
+        <div className="header-badges">
+          <span className="badge streaming">⚡ Streaming</span>
+          <span className="badge optimized">🚀 Optimized</span>
+        </div>
         <button onClick={clearChat} className="clear-btn">
           Clear Chat
         </button>
       </div>
 
       <div className="messages-container">
-        {messages.length === 0 && (
+        {messages.length === 0 && !streamingMessage && (
           <div className="welcome-message">
             <h2>👋 Welcome!</h2>
             <p>Ask me anything about my experience, skills, or projects.</p>
+            <div className="suggestions">
+              <button onClick={() => { setInput("What are your skills?"); }}>💻 Skills</button>
+              <button onClick={() => { setInput("Tell me about your projects"); }}>🚀 Projects</button>
+              <button onClick={() => { setInput("What sports do you play?"); }}>🏏 Sports</button>
+              <button onClick={() => { setInput("How does this chatbot work?"); }}>🤖 About RAG</button>
+            </div>
           </div>
         )}
 
@@ -83,12 +177,38 @@ function App() {
               {msg.role === 'user' && <span className="avatar">👤</span>}
               {msg.role === 'assistant' && <span className="avatar">🤖</span>}
               {msg.role === 'error' && <span className="avatar">⚠️</span>}
-              <div className="text">{msg.content}</div>
+              <div className="text">
+                {msg.role === 'assistant' ? (
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
+                {msg.cacheHit && <span className="cache-badge">⚡ Cached</span>}
+              </div>
             </div>
+            {msg.sources && msg.sources.length > 0 && (
+              <div className="sources">
+                <small>Sources: {msg.sources.map(s => s.source).join(', ')}</small>
+              </div>
+            )}
           </div>
         ))}
 
-        {loading && (
+        {/* Streaming message */}
+        {streamingMessage && (
+          <div className="message assistant streaming">
+            <div className="message-content">
+              <span className="avatar">🤖</span>
+              <div className="text">
+                <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                <span className="cursor">▊</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading indicator (only when not streaming) */}
+        {loading && !streamingMessage && (
           <div className="message assistant">
             <div className="message-content">
               <span className="avatar">🤖</span>

@@ -2,8 +2,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from app.models.schemas import ChatRequest, ChatResponse, HealthResponse
 from app.services.rag_service import rag_service
-from datetime import datetime
+from datetime import datetime, timezone
 import json
+import asyncio
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -14,7 +15,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         version="1.0.0",
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
 
 
@@ -38,7 +39,7 @@ async def chat(request: ChatRequest):
             answer=result["answer"],
             sources=result["sources"],
             session_id=result["session_id"],
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
     
     except Exception as e:
@@ -52,26 +53,49 @@ async def chat(request: ChatRequest):
 async def chat_stream(request: ChatRequest):
     """
     Stream chat response for real-time typing effect.
+    Uses Server-Sent Events (SSE) for streaming.
     """
     async def generate():
         try:
-            result = await rag_service.get_answer(
+            # First, get context in parallel (fast operations)
+            result = await rag_service.get_answer_streaming(
                 question=request.message,
                 session_id=request.session_id
             )
             
-            # Stream the answer word by word
-            words = result["answer"].split()
-            for word in words:
-                yield f"data: {json.dumps({'token': word + ' '})}\n\n"
+            # If cache hit, stream the cached answer
+            if result.get("cache_hit"):
+                answer = result["answer"]
+                words = answer.split()
+                for word in words:
+                    yield f"data: {json.dumps({'token': word + ' '})}\n\n"
+                    await asyncio.sleep(0.02)  # Small delay for typing effect
+                
+                yield f"data: {json.dumps({'done': True, 'sources': result['sources'], 'session_id': result['session_id'], 'cache_hit': True})}\n\n"
+                return
             
-            # Send final message with sources
-            yield f"data: {json.dumps({'done': True, 'sources': result['sources']})}\n\n"
+            # Stream from LLM
+            async for chunk in rag_service.stream_llm_response(
+                question=request.message,
+                context=result.get("context", {}),
+                session_id=result.get("session_id")
+            ):
+                if chunk.get("token"):
+                    yield f"data: {json.dumps({'token': chunk['token']})}\n\n"
+                elif chunk.get("done"):
+                    yield f"data: {json.dumps({'done': True, 'sources': chunk.get('sources', []), 'session_id': chunk.get('session_id')})}\n\n"
+                elif chunk.get("error"):
+                    yield f"data: {json.dumps({'error': chunk['error']})}\n\n"
         
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
     return StreamingResponse(
         generate(),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
     )
