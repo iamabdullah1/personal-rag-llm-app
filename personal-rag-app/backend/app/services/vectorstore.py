@@ -1,6 +1,5 @@
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-from pinecone import Pinecone
 from app.config import get_settings
 import os
 
@@ -28,7 +27,8 @@ class VectorStoreService:
             return self._vectorstore
         
         if use_pinecone and settings.pinecone_api_key:
-            # Production: Use Pinecone
+            # Production: Use Pinecone (import only when needed)
+            from pinecone import Pinecone
             from langchain_pinecone import PineconeVectorStore
             pc = Pinecone(api_key=settings.pinecone_api_key)
             self._vectorstore = PineconeVectorStore(
