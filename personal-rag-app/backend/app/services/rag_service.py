@@ -209,8 +209,8 @@ A: I'm into **badminton** (played at National level!), **cricket**, and **snooke
         if not is_personal or len(personal_context.strip()) < 50:
             web_context = await self._search_web(question)
         
-        # Get conversation history
-        conversation_history = conversation_store.get_history(session_id)
+        # Get conversation history (clean format for LLM)
+        conversation_history = conversation_store.get_history_for_llm(session_id)
         
         return {
             "cache_hit": False,
@@ -233,6 +233,9 @@ A: I'm into **badminton** (played at National level!), **cricket**, and **snooke
         
         # Return cached answer if found
         if context.get("cache_hit"):
+            # Store conversation even on cache hit to maintain history
+            conversation_store.add_message(session_id, "user", question)
+            conversation_store.add_message(session_id, "assistant", context["answer"])
             return {
                 "answer": context["answer"],
                 "sources": [{"content": "Retrieved from cache", "source": "Cache", "score": None}],
@@ -298,6 +301,9 @@ A: I'm into **badminton** (played at National level!), **cricket**, and **snooke
         context = await self._get_context_parallel(question, session_id)
         
         if context.get("cache_hit"):
+            # Store conversation even on cache hit to maintain history
+            conversation_store.add_message(session_id, "user", question)
+            conversation_store.add_message(session_id, "assistant", context["answer"])
             return {
                 "cache_hit": True,
                 "answer": context["answer"],

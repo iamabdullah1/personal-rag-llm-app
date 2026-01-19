@@ -45,6 +45,12 @@ class ConversationStore:
         with self.lock:
             return self.conversations.get(session_id, [])
     
+    def get_history_for_llm(self, session_id: str) -> List[Dict[str, str]]:
+        """Get conversation history formatted for LLM API (role + content only, no timestamp)"""
+        with self.lock:
+            history = self.conversations.get(session_id, [])
+            return [{"role": m["role"], "content": m["content"]} for m in history]
+    
     def clear_session(self, session_id: str):
         """Clear conversation history for a session"""
         with self.lock:
