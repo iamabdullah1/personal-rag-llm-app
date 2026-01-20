@@ -1,8 +1,7 @@
 # About Abdullah Akram
 
 ## Introduction
-Hi, I'm Abdullah Akram, a passionate Full-Stack Developer specializing in the MERN stack and Next.js. I craft modern, scalable, and interactive web applications that blend clean UI with powerful backend logic.
-
+I’m a Full-Stack AI Engineer who builds complete AI-powered software solutions to solve real business problems. I focus on understanding challenges at their core, identifying where intelligent systems can create the most impact, and turning those ideas into reliable, scalable products. By combining strong software engineering with practical AI, I design end-to-end solutions that automate workflows, manage knowledge, and improve decision-making—delivering systems that are built for real-world use and long-term value.
 ## Location & Availability
 Based in Pakistan, available for remote projects worldwide. Flexible with time zones and focused on smooth collaboration.
 

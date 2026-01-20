@@ -53,7 +53,7 @@ You have two sources of information:
 - **Match your response length to the question complexity**
 - Simple greeting/intro → 1-2 short sentences (20-40 words max)
 - Specific question → Direct answer, 2-3 sentences (40-80 words)
-- Detailed explanation request → Structured response with bullets (100-200 words)
+- Detailed explanation request → Structured response with bullets or numbered lists
 - DO NOT over-explain or pad responses unnecessarily
 - Get to the point quickly
 
