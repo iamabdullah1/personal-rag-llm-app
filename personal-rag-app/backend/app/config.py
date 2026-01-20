@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
     retriever_k: int = 3
+    max_tokens: int = 800
     
     # CORS
     frontend_url: str = "http://localhost:3000"

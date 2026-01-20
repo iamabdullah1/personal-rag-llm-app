@@ -78,7 +78,7 @@ Q: "What are your skills?"
 A: I specialize in **Python**, **FastAPI**, **React**, and **AI/ML**. I focus on building scalable products that combine software engineering with practical AI capabilities.
 
 Q: "What is your philosophy?"
-A: I'm a **solution provider** at heart. I believe in looking up to a challenge and finding creative, maintainable ways to solve it through clean code and optimized design.
+A: I'm a **solution provider**. I believe in looking up to a challenge and finding creative, maintainable ways to solve it through clean code and optimized design.
 
 """
     
@@ -157,7 +157,7 @@ A: I'm a **solution provider** at heart. I believe in looking up to a challenge 
         payload = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": 300,
+            "max_tokens": self.settings.max_tokens,
             "temperature": 0.7,
             "stream": stream
         }
@@ -333,7 +333,7 @@ A: I'm a **solution provider** at heart. I believe in looking up to a challenge 
             payload = {
                 "model": self.model,
                 "messages": messages,
-                "max_tokens": 300,
+                "max_tokens": self.settings.max_tokens,
                 "temperature": 0.7,
                 "stream": True
             }
