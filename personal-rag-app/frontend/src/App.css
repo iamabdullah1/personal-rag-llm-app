@@ -1,24 +1,20 @@
 .chat-container {
   width: 100%;
-  max-width: 900px;
-  height: 90vh;
+  height: 100vh;
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .chat-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px 30px;
+  background: white;
+  color: #333;
+  padding: 15px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  flex-wrap: wrap;
+  border-bottom: 1px solid #e0e0e0;
   gap: 10px;
 }
 
@@ -40,28 +36,28 @@
 }
 
 .badge.streaming {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #f0f4ff;
+  color: #667eea;
 }
 
 .badge.optimized {
-  background: rgba(255, 215, 0, 0.3);
-  color: white;
+  background: #fffdf0;
+  color: #b8860b;
 }
 
 .clear-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
+  font-size: 13px;
+  transition: all 0.3s;
 }
 
 .clear-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #eeeeee;
 }
 
 .messages-container {
@@ -119,6 +115,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -179,8 +176,16 @@
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Cache hit badge */
@@ -231,9 +236,13 @@
 }
 
 @keyframes bounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0);
   }
+
   40% {
     transform: scale(1);
   }
@@ -368,9 +377,17 @@
   color: #2d3748;
 }
 
-.message.assistant .text h1 { font-size: 1.3em; }
-.message.assistant .text h2 { font-size: 1.2em; }
-.message.assistant .text h3 { font-size: 1.1em; }
+.message.assistant .text h1 {
+  font-size: 1.3em;
+}
+
+.message.assistant .text h2 {
+  font-size: 1.2em;
+}
+
+.message.assistant .text h3 {
+  font-size: 1.1em;
+}
 
 /* Bullet lists */
 .message.assistant .text ul {

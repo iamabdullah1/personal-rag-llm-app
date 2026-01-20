@@ -262,11 +262,7 @@ function App() {
                 {msg.cacheHit && <span className="cache-badge">⚡ Cached</span>}
               </div>
             </div>
-            {msg.sources && msg.sources.length > 0 && (
-              <div className="sources">
-                <small>Sources: {msg.sources.map(s => s.source).join(', ')}</small>
-              </div>
-            )}
+        
           </div>
         ))}
 
