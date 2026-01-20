@@ -186,7 +186,7 @@ A: I'm into **badminton** (played at National level!), **cricket**, and **snooke
         
         # Run operations in parallel
         similar_cache_task = asyncio.get_event_loop().run_in_executor(
-            thread_pool, semantic_cache.find_similar, question, 3
+            thread_pool, semantic_cache.find_similar, question, 2
         )
         
         # Vector search (CPU-bound, use thread pool)
