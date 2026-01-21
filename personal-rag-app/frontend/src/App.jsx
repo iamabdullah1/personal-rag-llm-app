@@ -15,6 +15,7 @@ function App() {
   const [streamingMessage, setStreamingMessage] = useState('')
   const [isRestoring, setIsRestoring] = useState(true)
   const [theme, setTheme] = useState('dark') // Default to dark
+  const [keyboardBottom, setKeyboardBottom] = useState(0)
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
 
@@ -32,6 +33,18 @@ function App() {
     setTheme(savedTheme)
     document.documentElement.classList.toggle('light', savedTheme === 'light')
     document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+  }, [])
+
+  // Handle keyboard on mobile
+  useEffect(() => {
+    if (window.visualViewport) {
+      const handleResize = () => {
+        const offset = window.innerHeight - window.visualViewport.height
+        setKeyboardBottom(offset)
+      }
+      window.visualViewport.addEventListener('resize', handleResize)
+      return () => window.visualViewport.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   const toggleTheme = () => {
@@ -185,13 +198,13 @@ function App() {
       </div>
 
       {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6 pb-32">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center opacity-40 mt-20">
             <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
               <Bot size={32} />
             </div>
-            <p>Ready to help. Ask me anything.</p>
+            <p>Welcome to my personal chatbot. You can ask anything. 😊</p>
           </div>
         )}
 
@@ -246,7 +259,7 @@ function App() {
       </main>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8" style={{ bottom: `${keyboardBottom}px` }}>
         <div className="max-w-3xl mx-auto">
           <form onSubmit={sendMessage} className="relative flex items-center gap-2 bg-[#f4f4f4] dark:bg-[#2f2f2f] p-2 rounded-full border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 transition-all shadow-lg">
             <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
