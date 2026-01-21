@@ -140,6 +140,9 @@
 .avatar {
   font-size: 28px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text {
@@ -210,7 +213,7 @@
 
 /* Streaming message style */
 .message.streaming .text {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  background: #212121;
 }
 
 .typing {
@@ -327,13 +330,33 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .chat-container {
-    height: 100vh;
-    border-radius: 0;
+  .chat-header {
+    padding: 10px 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
   }
 
   .chat-header h1 {
-    font-size: 20px;
+    font-size: 18px;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .header-badges {
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .clear-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .chat-container {
+    height: 100vh;
+    border-radius: 0;
   }
 
   .messages-container {
@@ -345,7 +368,18 @@
   }
 
   .input-container {
-    padding: 15px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .message-input {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+
+  .send-btn {
+    padding: 10px 18px;
+    font-size: 16px;
   }
 }
 
@@ -363,12 +397,12 @@
 }
 
 .message.assistant .text strong {
-  color: #4a5568;
+  color: #ececf1;
   font-weight: 600;
 }
 
 .message.assistant .text em {
-  color: #667eea;
+  color: #8899ff;
   font-style: italic;
 }
 
@@ -378,7 +412,7 @@
 .message.assistant .text h3 {
   margin: 16px 0 8px 0;
   font-weight: 600;
-  color: #2d3748;
+  color: #ececf1;
 }
 
 .message.assistant .text h1 {
@@ -428,12 +462,12 @@
 
 /* Code inline */
 .message.assistant .text code {
-  background: #f1f5f9;
+  background: #343541;
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.9em;
-  color: #e53e3e;
+  color: #ff9999;
 }
 
 /* Code blocks */
@@ -460,9 +494,9 @@
   border-left: 4px solid #667eea;
   margin: 12px 0;
   padding: 8px 16px;
-  background: #f8fafc;
+  background: #343541;
   border-radius: 0 8px 8px 0;
-  color: #4a5568;
+  color: #ececf1;
 }
 
 /* Links */
