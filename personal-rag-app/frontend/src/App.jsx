@@ -181,7 +181,7 @@ function App() {
         <button onClick={() => setInput("What are your skills?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Skills</button>
         <button onClick={() => setInput("What are your projects?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Projects</button>
         <button onClick={() => setInput("Which sports do you play?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Sports</button>
-        <button onClick={() => setInput("Explain this project.")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">About Track</button>
+        <button onClick={() => setInput("Explain this project.")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">About This Project</button>
       </div>
 
       {/* Chat Area */}
