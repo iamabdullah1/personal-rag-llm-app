@@ -285,9 +285,7 @@ function App() {
               </button>
             )}
           </form>
-          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-3">
-            AI can make mistakes. Check important info.
-          </p>
+       
         </div>
       </div>
     </div>
