@@ -17,11 +17,12 @@ thread_pool = ThreadPoolExecutor(max_workers=4)
 
 class RAGService:
     def __init__(self):
+        self.settings = settings
         # Using FREE HuggingFace Inference Providers API (OpenAI-compatible)
         self.api_url = "https://router.huggingface.co/v1/chat/completions"
         self.model = "Qwen/Qwen2.5-7B-Instruct"
         self.headers = {
-            "Authorization": f"Bearer {settings.huggingface_api_key}",
+            "Authorization": f"Bearer {self.settings.huggingface_api_key}",
             "Content-Type": "application/json"
         }
         
