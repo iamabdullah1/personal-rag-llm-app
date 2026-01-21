@@ -176,7 +176,7 @@ function App() {
       </header>
 
       {/* Quick Question Tabs */}
-      <div className="flex justify-center gap-2 p-2 max-w-3xl mx-auto w-full overflow-x-auto">
+      <div className="flex flex-wrap justify-center gap-2 p-2 max-w-3xl mx-auto w-full">
         <button onClick={() => setInput("Who are you?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Introduction</button>
         <button onClick={() => setInput("What are your skills?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Skills</button>
         <button onClick={() => setInput("What are your projects?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Projects</button>
@@ -185,7 +185,7 @@ function App() {
       </div>
 
       {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6 pb-32">
+      <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center opacity-40 mt-20">
             <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
@@ -246,7 +246,7 @@ function App() {
       </main>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8">
+      <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8">
         <div className="max-w-3xl mx-auto">
           <form onSubmit={sendMessage} className="relative flex items-center gap-2 bg-[#f4f4f4] dark:bg-[#2f2f2f] p-2 rounded-full border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 transition-all shadow-lg">
             <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
