@@ -262,9 +262,7 @@ function App() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8" style={{ bottom: `${keyboardBottom}px` }}>
         <div className="max-w-3xl mx-auto">
           <form onSubmit={sendMessage} className="relative flex items-center gap-2 bg-[#f4f4f4] dark:bg-[#2f2f2f] p-2 rounded-full border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 transition-all shadow-lg">
-            <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
-              <Plus size={20} />
-            </button>
+          
 
             <input
               type="text"
@@ -275,15 +273,11 @@ function App() {
               className="flex-1 bg-transparent outline-none text-base text-gray-800 dark:text-[#ececf1] placeholder-gray-500"
             />
 
-            {!input.trim() ? (
-              <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
-                <Mic size={20} />
-              </button>
-            ) : (
+           
               <button type="submit" disabled={loading} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md">
                 <Send size={20} />
               </button>
-            )}
+            
           </form>
        
         </div>
