@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.routers import chat
 from app.config import get_settings
 import logging
@@ -100,6 +101,9 @@ async def add_timing_header(request: Request, call_next):
 
 # Include routers
 app.include_router(chat.router)
+
+# Serve static files (Frontend)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 
 @app.on_event("startup")
