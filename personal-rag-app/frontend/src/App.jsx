@@ -175,6 +175,15 @@ function App() {
         </div>
       </header>
 
+      {/* Quick Question Tabs */}
+      <div className="flex justify-center gap-2 p-2 max-w-3xl mx-auto w-full overflow-x-auto">
+        <button onClick={() => setInput("Who are you?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Introduction</button>
+        <button onClick={() => setInput("What are your skills?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Skills</button>
+        <button onClick={() => setInput("What are your projects?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Projects</button>
+        <button onClick={() => setInput("Which sports do you play?")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">Sports</button>
+        <button onClick={() => setInput("Explain this project.")} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-sm whitespace-nowrap">About Track</button>
+      </div>
+
       {/* Chat Area */}
       <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6 pb-32">
         {messages.length === 0 && (
