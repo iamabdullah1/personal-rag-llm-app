@@ -1,23 +1,45 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-dark-bg: #212121;
+  --color-dark-surface: #2f2f2f;
+  --color-dark-border: #444444;
+  --color-dark-text: #ececf1;
+  --color-dark-muted: #b0b0b0;
+
+  --color-light-bg: #ffffff;
+  --color-light-surface: #f3f4f6;
+  --color-light-border: #e5e7eb;
+  --color-light-text: #1f2937;
+  --color-light-muted: #6b7280;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #212121;
-  color: #ececf1;
-  min-height: 100vh;
+@layer base {
+  body {
+    @apply bg-dark-bg text-dark-text antialiased transition-colors duration-300;
+  }
+
+  /* Light mode override via class */
+  :root.light body {
+    @apply bg-light-bg text-light-text;
+  }
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* Custom Scrollbar for Webkit */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
 }

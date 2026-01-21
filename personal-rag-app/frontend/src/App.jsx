@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { Send, Plus, Mic, Moon, Sun, Monitor, User, Bot, Trash2 } from 'lucide-react'
 import './App.css'
 
 const STORAGE_KEY = 'rag_session_id'
-// Use environment variable for API URL in production, empty string for local (uses proxy)
+const THEME_KEY = 'rag_theme'
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [conversationId, setConversationId] = useState(null)
   const [streamingMessage, setStreamingMessage] = useState('')
   const [isRestoring, setIsRestoring] = useState(true)
+  const [theme, setTheme] = useState('dark') // Default to dark
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
 
@@ -24,77 +26,73 @@ function App() {
     scrollToBottom()
   }, [messages, streamingMessage])
 
-  // Restore conversation on page load
+  // Initialize Theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark'
+    setTheme(savedTheme)
+    document.documentElement.classList.toggle('light', savedTheme === 'light')
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    localStorage.setItem(THEME_KEY, newTheme)
+    document.documentElement.classList.toggle('light', newTheme === 'light')
+    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  }
+
+  // Restore conversation
   useEffect(() => {
     const restoreConversation = async () => {
       const savedSessionId = localStorage.getItem(STORAGE_KEY)
-      
       if (savedSessionId) {
         try {
           const response = await fetch(`${API_BASE}/api/conversation/${savedSessionId}`)
           if (response.ok) {
             const data = await response.json()
             if (data.messages && data.messages.length > 0) {
-              // Convert backend format to frontend format
               const restoredMessages = data.messages.map(msg => ({
                 role: msg.role,
                 content: msg.content
               }))
               setMessages(restoredMessages)
               setConversationId(savedSessionId)
-              console.log(`✅ Restored ${data.message_count} messages from session ${savedSessionId}`)
             }
           }
         } catch (error) {
-          console.log('No previous conversation found:', error)
           localStorage.removeItem(STORAGE_KEY)
         }
       }
       setIsRestoring(false)
     }
-    
     restoreConversation()
   }, [])
 
-  // Save session_id to localStorage whenever it changes
+  // Save conversation ID
   useEffect(() => {
-    if (conversationId) {
-      localStorage.setItem(STORAGE_KEY, conversationId)
-    }
+    if (conversationId) localStorage.setItem(STORAGE_KEY, conversationId)
   }, [conversationId])
 
-  // Cleanup abort controller on unmount
+  // Cleanup abort controller
   useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-    }
+    return () => abortControllerRef.current?.abort()
   }, [])
 
   const sendMessageStreaming = useCallback(async (userMessage) => {
     setLoading(true)
     setStreamingMessage('')
-    
-    // Create abort controller for this request
     abortControllerRef.current = new AbortController()
-    
+
     try {
       const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          session_id: conversationId
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage, session_id: conversationId }),
         signal: abortControllerRef.current.signal
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -102,61 +100,33 @@ function App() {
 
       while (true) {
         const { done, value } = await reader.read()
-        
         if (done) break
-        
+
         const chunk = decoder.decode(value, { stream: true })
         const lines = chunk.split('\n')
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
-              
               if (data.token) {
                 fullMessage += data.token
                 setStreamingMessage(fullMessage)
               }
-              
               if (data.done) {
-                // Finalize message
-                setMessages(prev => [...prev, { 
-                  role: 'assistant', 
-                  content: fullMessage,
-                  sources: data.sources,
-                  cacheHit: data.cache_hit
-                }])
+                setMessages(prev => [...prev, { role: 'assistant', content: fullMessage }])
                 setStreamingMessage('')
-                
-                if (data.session_id) {
-                  setConversationId(data.session_id)
-                }
+                if (data.session_id) setConversationId(data.session_id)
               }
-              
-              if (data.error) {
-                throw new Error(data.error)
-              }
-            } catch (parseError) {
-              // Skip invalid JSON
-              if (parseError.message !== 'Unexpected end of JSON input') {
-                console.warn('Parse error:', parseError)
-              }
-            }
+            } catch (e) { /* ignore */ }
           }
         }
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Request aborted')
-        return
+      if (error.name !== 'AbortError') {
+        setMessages(prev => [...prev, { role: 'error', content: 'Sorry, something went wrong.' }])
+        setStreamingMessage('')
       }
-      
-      console.error('Streaming error:', error)
-      setMessages(prev => [...prev, { 
-        role: 'error', 
-        content: 'Sorry, something went wrong. Please try again.' 
-      }])
-      setStreamingMessage('')
     } finally {
       setLoading(false)
       abortControllerRef.current = null
@@ -166,153 +136,138 @@ function App() {
   const sendMessage = async (e) => {
     e.preventDefault()
     if (!input.trim() || loading) return
-
     const userMessage = input.trim()
     setInput('')
-    
-    // Add user message to chat
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
-    
-    // Use streaming for better UX
     await sendMessageStreaming(userMessage)
   }
 
   const clearChat = async () => {
-    // Abort any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    
-    // Clear from backend if session exists
+    if (abortControllerRef.current) abortControllerRef.current.abort()
     if (conversationId) {
-      try {
-        await fetch(`${API_BASE}/api/conversation/${conversationId}`, { method: 'DELETE' })
-      } catch (error) {
-        console.log('Error clearing backend session:', error)
-      }
+      try { await fetch(`${API_BASE}/api/conversation/${conversationId}`, { method: 'DELETE' }) } catch (e) { }
     }
-    
-    // Clear localStorage
     localStorage.removeItem(STORAGE_KEY)
-    
-    // Clear frontend state
     setMessages([])
     setConversationId(null)
     setStreamingMessage('')
     setLoading(false)
   }
 
-  // Show loading state while restoring
-  if (isRestoring) {
-    return (
-      <div className="chat-container">
-        <div className="chat-header">
-          <h1>💬 Personal RAG Assistant</h1>
-        </div>
-        <div className="messages-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div className="typing">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  if (isRestoring) return <div className="min-h-screen bg-dark-bg dark:bg-dark-bg flex items-center justify-center text-gray-500">Loading...</div>
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h1>💬 Personal RAG Assistant</h1>
-        <div className="header-badges">
-          <span className="badge streaming">⚡ Streaming</span>
-          <span className="badge optimized">🚀 Optimized</span>
-        </div>
-        <button onClick={clearChat} className="clear-btn">
-          Clear Chat
-        </button>
-      </div>
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme === 'light' ? 'bg-light-bg text-light-text' : 'bg-dark-bg text-dark-text'}`}>
 
-      <div className="messages-container">
-        {messages.length === 0 && !streamingMessage && (
-          <div className="welcome-message">
-            <h2>👋 Welcome!</h2>
-            <p>Ask me anything about my experience, skills, or projects.</p>
-            <div className="suggestions">
-              <button onClick={() => { setInput("What are your skills?"); }}>💻 Skills</button>
-              <button onClick={() => { setInput("Tell me about your projects"); }}>🚀 Projects</button>
-              <button onClick={() => { setInput("What sports do you play?"); }}>🏏 Sports</button>
-              <button onClick={() => { setInput("How does this chatbot work?"); }}>🤖 About RAG</button>
+      {/* Header */}
+      <header className="flex justify-between items-center p-4 max-w-3xl mx-auto w-full z-10">
+        <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+          <Monitor size={18} />
+          <span className="font-medium text-sm">RAG Assistant</span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button onClick={clearChat} className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors" title="Clear Chat">
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </header>
+
+      {/* Chat Area */}
+      <main className="flex-1 overflow-y-auto p-4 w-full max-w-3xl mx-auto space-y-6 pb-32">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center opacity-40 mt-20">
+            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+              <Bot size={32} />
             </div>
+            <p>Ready to help. Ask me anything.</p>
           </div>
         )}
 
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.role}`}>
-            <div className="message-content">
-              {msg.role === 'user' && <span className="avatar">👤</span>}
-              {msg.role === 'assistant' && <span className="avatar">🤖</span>}
-              {msg.role === 'error' && <span className="avatar">⚠️</span>}
-              <div className="text">
-                {msg.role === 'assistant' ? (
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                ) : (
-                  msg.content
-                )}
-                {msg.cacheHit && <span className="cache-badge">⚡ Cached</span>}
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && (
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
+                <Bot size={16} className="text-white" />
               </div>
+            )}
+
+            <div className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${msg.role === 'user'
+              ? 'bg-blue-600 text-white rounded-br-none'
+              : 'bg-white dark:!bg-[#2f2f2f] dark:!text-[#ececf1] border border-gray-100 dark:border-gray-700/50 rounded-bl-none prose dark:prose-invert prose-sm'
+              }`}>
+              {msg.role === 'user' ? msg.content : <ReactMarkdown>{msg.content}</ReactMarkdown>}
             </div>
-        
+
+            {msg.role === 'user' && (
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0 mt-1">
+                <User size={16} />
+              </div>
+            )}
           </div>
         ))}
 
-        {/* Streaming message */}
         {streamingMessage && (
-          <div className="message assistant streaming">
-            <div className="message-content">
-              <span className="avatar">🤖</span>
-              <div className="text">
-                <ReactMarkdown>{streamingMessage}</ReactMarkdown>
-                <span className="cursor">▊</span>
-              </div>
+          <div className="flex gap-4 justify-start animate-fade-in">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
+              <Bot size={16} className="text-white" />
+            </div>
+            <div className="max-w-[80%] rounded-2xl rounded-bl-none px-5 py-3 bg-white dark:bg-[#2f2f2f] border border-gray-100 dark:border-gray-700 shadow-sm prose dark:prose-invert prose-sm">
+              <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+              <span className="inline-block w-2 h-4 bg-blue-500 ml-1 animate-pulse"></span>
             </div>
           </div>
         )}
 
-        {/* Loading indicator (only when not streaming) */}
         {loading && !streamingMessage && (
-          <div className="message assistant">
-            <div className="message-content">
-              <span className="avatar">🤖</span>
-              <div className="text typing">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+          <div className="flex gap-4 justify-start">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
+              <Bot size={16} className="text-white" />
+            </div>
+            <div className="flex gap-1 items-center bg-white dark:bg-[#2f2f2f] px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700">
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
             </div>
           </div>
         )}
-        
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      <form onSubmit={sendMessage} className="input-container">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me anything..."
-          disabled={loading}
-          className="message-input"
-        />
-        <button 
-          type="submit" 
-          disabled={loading || !input.trim()}
-          className="send-btn"
-        >
-          {loading ? '⏳' : '🚀'}
-        </button>
-      </form>
+      {/* Input Area */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8">
+        <div className="max-w-3xl mx-auto">
+          <form onSubmit={sendMessage} className="relative flex items-center gap-2 bg-[#f4f4f4] dark:bg-[#2f2f2f] p-2 rounded-full border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 transition-all shadow-lg">
+            <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+              <Plus size={20} />
+            </button>
+
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything..."
+              disabled={loading}
+              className="flex-1 bg-transparent outline-none text-base text-gray-800 dark:text-[#ececf1] placeholder-gray-500"
+            />
+
+            {!input.trim() ? (
+              <button type="button" className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+                <Mic size={20} />
+              </button>
+            ) : (
+              <button type="submit" disabled={loading} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md">
+                <Send size={20} />
+              </button>
+            )}
+          </form>
+          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-3">
+            AI can make mistakes. Check important info.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
