@@ -1,20 +1,20 @@
 .chat-container {
   width: 100%;
   height: 100vh;
-  background: white;
+  background: #212121;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .chat-header {
-  background: white;
-  color: #333;
+  background: #212121;
+  color: #ececf1;
   padding: 15px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #343541;
   gap: 10px;
 }
 
@@ -64,7 +64,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px 30px;
-  background: #f7f8fc;
+  background: #212121;
 }
 
 .welcome-message {
@@ -76,7 +76,7 @@
 .welcome-message h2 {
   font-size: 32px;
   margin-bottom: 10px;
-  color: #333;
+  color: #ececf1;
 }
 
 .suggestions {
@@ -88,9 +88,9 @@
 }
 
 .suggestions button {
-  background: white;
-  border: 2px solid #667eea;
-  color: #667eea;
+  background: #343541;
+  border: 1px solid #565869;
+  color: #ececf1;
   padding: 10px 20px;
   border-radius: 20px;
   cursor: pointer;
@@ -157,9 +157,9 @@
 }
 
 .message.assistant .text {
-  background: white;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  background: #212121;
+  color: #ececf1;
+  border: none;
   border-bottom-left-radius: 4px;
 }
 
@@ -250,17 +250,21 @@
 
 .input-container {
   padding: 20px 30px;
-  background: white;
-  border-top: 1px solid #e0e0e0;
+  background: #212121;
+  border-top: none;
   display: flex;
   gap: 10px;
+  justify-content: center;
 }
 
 .message-input {
   flex: 1;
+  max-width: 800px;
   padding: 14px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 25px;
+  background: #343541;
+  border: 1px solid #565869;
+  color: white;
+  border-radius: 12px;
   font-size: 15px;
   outline: none;
   transition: border-color 0.3s;
@@ -308,7 +312,7 @@
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #212121;
   border-radius: 10px;
 }
 
