@@ -17,11 +17,11 @@ COPY personal-rag-app/backend/ .
 # Create data directory
 RUN mkdir -p data/chroma_db
 
-# Run data ingestion
-RUN python ingest_data.py
-
 # Expose port (HF Spaces uses port 7860)
 EXPOSE 7860
 
-# Start server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Create startup script that runs ingestion then starts server
+RUN echo '#!/bin/bash\npython ingest_data.py\nuvicorn app.main:app --host 0.0.0.0 --port 7860' > /app/start.sh && chmod +x /app/start.sh
+
+# Start server (run ingestion at startup, not during build)
+CMD ["/bin/bash", "/app/start.sh"]
