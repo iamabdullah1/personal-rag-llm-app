@@ -14,21 +14,6 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - **Semantic Caching**: Optimizing AI responses with similarity-based caching
 - **Prompt Engineering**: Crafting effective system prompts for LLMs
 - **PyTorch**: Machine learning framework for AI model execution
-- **Sentence Transformers**: Text embeddings (all-MiniLM-L6-v2)
-
-## Python & Automation
-- **Python**: Core programming for AI/ML and backend services
-- **FastAPI**: High-performance Python web APIs with async support
-- **Automation Scripts**: Building automated workflows and data pipelines
-- **Web Scraping**: BeautifulSoup, Selenium, DuckDuckGo search integration, data extraction
-- **Pydantic**: Data validation and settings management
-
-## Data Science & Analytics
-- **Data Analysis**: Pandas, NumPy for data manipulation and analysis
-- **Data Visualization**: Matplotlib, Chart.js for insights and reporting
-- **Data Extraction**: Web scraping, API data collection, ETL pipelines
-- **Data Cleaning**: Preprocessing and transforming raw data
-- **Statistical Analysis**: Data-driven decision making
 
 ## Frontend Technologies
 - **React.js**: Building interactive user interfaces with modern React patterns
@@ -53,6 +38,23 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 - **MERN Stack**: MongoDB, Express.js, React.js, Node.js
 - **Next.js Full-Stack**: Server-side rendering, API routes, and dynamic routing
 - **FastAPI + React**: Python backend with React frontend
+
+
+## Python & Automation
+- **Python**: Core programming for AI/ML and backend services
+- **FastAPI**: High-performance Python web APIs with async support
+- **Automation Scripts**: Building automated workflows and data pipelines
+- **Web Scraping**: BeautifulSoup, Selenium, DuckDuckGo search integration, data extraction
+- **Pydantic**: Data validation and settings management
+
+## Data Science & Analytics
+- **Data Analysis**: Pandas, NumPy for data manipulation and analysis
+- **Data Visualization**: Matplotlib, Chart.js for insights and reporting
+- **Data Extraction**: Web scraping, API data collection, ETL pipelines
+- **Data Cleaning**: Preprocessing and transforming raw data
+- **Statistical Analysis**: Data-driven decision making
+
+
 
 ## Advanced Features
 - **Role-Based Access Control (RBAC)**: Multi-level user authentication and authorization
