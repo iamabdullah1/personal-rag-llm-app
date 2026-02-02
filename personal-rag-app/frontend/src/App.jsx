@@ -131,6 +131,11 @@ function App() {
                 setStreamingMessage('')
                 if (data.session_id) setConversationId(data.session_id)
               }
+              if (data.error) {
+                setMessages(prev => [...prev, { role: 'error', content: data.error }])
+                setStreamingMessage('')
+                return // Stop processing
+              }
             } catch (e) { /* ignore */ }
           }
         }
@@ -170,7 +175,7 @@ function App() {
   if (isRestoring) return <div className="min-h-screen bg-dark-bg dark:bg-dark-bg flex items-center justify-center text-gray-500">Loading...</div>
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme === 'light' ? 'bg-light-bg text-light-text' : 'bg-dark-bg text-dark-text'}`}>
+    <div className={`h-[100dvh] w-full overflow-hidden flex flex-col transition-colors duration-300 relative ${theme === 'light' ? 'bg-light-bg text-light-text' : 'bg-dark-bg text-dark-text'}`}>
 
       {/* Header */}
       <header className="flex justify-between items-center p-4 max-w-3xl mx-auto w-full z-10">
@@ -262,7 +267,7 @@ function App() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#212121] dark:via-[#212121] pb-8" style={{ bottom: `${keyboardBottom}px` }}>
         <div className="max-w-3xl mx-auto">
           <form onSubmit={sendMessage} className="relative flex items-center gap-2 bg-[#f4f4f4] dark:bg-[#2f2f2f] p-2 rounded-full border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 transition-all shadow-lg">
-          
+
 
             <input
               type="text"
@@ -273,13 +278,13 @@ function App() {
               className="flex-1 bg-transparent outline-none text-base text-gray-800 dark:text-[#ececf1] placeholder-gray-500"
             />
 
-           
-              <button type="submit" disabled={loading} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md">
-                <Send size={20} />
-              </button>
-            
+
+            <button type="submit" disabled={loading} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md">
+              <Send size={20} />
+            </button>
+
           </form>
-       
+
         </div>
       </div>
     </div>
