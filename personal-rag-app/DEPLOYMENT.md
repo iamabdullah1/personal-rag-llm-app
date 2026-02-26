@@ -1,219 +1,241 @@
-# 🚀 Deployment Guide - Personal RAG Chatbot
+# Deployment Guide — Personal RAG Chatbot v2.0
 
-## Architecture Overview
+> **Backend on HuggingFace Spaces (Docker) + Frontend on Vercel**
+> Total cost: $0/month
+
+---
+
+## Architecture
 
 ```
-┌─────────────────┐         ┌─────────────────┐
-│   FRONTEND      │         │    BACKEND      │
-│   (Vercel)      │ ──API── │   (Railway)     │
-│   React/Vite    │         │   FastAPI       │
-└─────────────────┘         └─────────────────┘
-                                    │
-                            ┌───────┴───────┐
-                            │   ChromaDB    │
-                            │ (Vector Store)│
-                            └───────────────┘
+GitHub Repository (iamabdullah1/personal-rag-llm-app)
+         |
+         +----> HuggingFace Spaces (Backend - Docker)
+         |        - FastAPI server
+         |        - ChromaDB vector store
+         |        - Groq LLM integration
+         |        - URL: https://abdullah7570-personal-rag-chatbot.hf.space
+         |
+         +----> Vercel (Frontend - Static)
+                  - React + Vite build
+                  - Proxies /api/* to HuggingFace Space
+                  - URL: https://personal-rag-chatbot.vercel.app
 ```
 
 ---
 
-## Option 1: Railway + Vercel (Recommended) 🌟
+## 1. Backend Deployment (HuggingFace Spaces)
 
-### Step 1: Deploy Backend to Railway
+### Prerequisites
+- HuggingFace account (free)
+- Groq API key (free at console.groq.com)
+- Tavily API key (free at tavily.com)
 
-1. **Create Railway Account**
-   - Go to [railway.app](https://railway.app)
-   - Sign up with GitHub
+### Step 1: Create HuggingFace Space
 
-2. **Deploy Backend**
-   ```bash
-   # Install Railway CLI
-   npm install -g @railway/cli
-   
-   # Login
-   railway login
-   
-   # Navigate to backend
-   cd personal-rag-app/backend
-   
-   # Initialize and deploy
-   railway init
-   railway up
-   ```
+1. Go to https://huggingface.co/spaces
+2. Click "Create new Space"
+3. Settings:
+   - **Name**: personal-rag-chatbot
+   - **SDK**: Docker
+   - **Visibility**: Public
+   - **Hardware**: CPU Basic (free)
 
-3. **Set Environment Variables** (Railway Dashboard → Variables)
-   ```
-   HUGGINGFACE_API_KEY=your_key_here
-   ENVIRONMENT=production
-   DEBUG=false
-   ```
+### Step 2: Set Environment Variables (Secrets)
 
-4. **Get Your Backend URL**
-   - Railway will give you a URL like: `https://your-app.up.railway.app`
+In Space Settings > Repository secrets:
 
-### Step 2: Deploy Frontend to Vercel
+| Variable | Value | Required |
+|----------|-------|----------|
+| GROQ_API_KEY | gsk_... | Yes |
+| TAVILY_API_KEY | tvly-dev-... | Yes |
+| GROQ_MODEL | llama-3.3-70b-versatile | No (has default) |
+| GITHUB_USERNAME | iamabdullah1 | No (has default) |
 
-1. **Create Vercel Account**
-   - Go to [vercel.com](https://vercel.com)
-   - Sign up with GitHub
+### Step 3: Connect Git Remote
 
-2. **Deploy Frontend**
-   ```bash
-   # Install Vercel CLI
-   npm install -g vercel
-   
-   # Navigate to frontend
-   cd personal-rag-app/frontend
-   
-   # Deploy
-   vercel
-   ```
+```bash
+# Add HuggingFace as a remote
+git remote add huggingface https://huggingface.co/spaces/YOUR_USERNAME/personal-rag-chatbot
 
-3. **Set Environment Variable** (Vercel Dashboard → Settings → Environment Variables)
-   ```
-   VITE_API_URL=https://your-backend.up.railway.app
-   ```
+# Push to deploy
+git push huggingface main
+```
 
-4. **Redeploy** to apply the env variable:
-   ```bash
-   vercel --prod
-   ```
+### Step 4: Verify Deployment
+
+```bash
+# Health check
+curl https://YOUR_USERNAME-personal-rag-chatbot.hf.space/api/health
+
+# Expected response:
+# {"status":"healthy","version":"2.0.0"}
+```
+
+### Backend Dockerfile (backend/Dockerfile)
+
+The backend Dockerfile:
+- Uses Python 3.12
+- Installs dependencies from requirements.txt
+- Copies the app code, data, and pre-built frontend static files
+- Exposes port 7860 (HuggingFace default)
+- Runs with uvicorn
+
+### Important Notes
+
+- HuggingFace Spaces expects port 7860 by default
+- The `start.sh` script handles the port configuration
+- ChromaDB data is included in the Docker image (pre-ingested)
+- The built frontend is served from `backend/static/`
 
 ---
 
-## Option 2: Single Deploy on Railway (Full Stack)
+## 2. Frontend Deployment (Vercel)
 
-Deploy both frontend and backend as a single service:
+### Prerequisites
+- Vercel account (free)
+- GitHub repository connected
 
-### Step 1: Build Frontend into Backend
+### Step 1: Import Project on Vercel
+
+1. Go to https://vercel.com/new
+2. Import your GitHub repository
+3. Settings:
+   - **Framework Preset**: Vite
+   - **Root Directory**: frontend
+   - **Build Command**: npm run build
+   - **Output Directory**: dist
+
+### Step 2: Configure Proxy (vercel.json)
+
+The `frontend/vercel.json` file handles API proxying:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://abdullah7570-personal-rag-chatbot.hf.space/api/:path*"
+    }
+  ]
+}
+```
+
+This ensures all `/api/*` requests from the frontend are forwarded to the HuggingFace Space backend.
+
+### Step 3: Deploy
+
+Vercel auto-deploys when you push to GitHub:
+
+```bash
+git push origin main
+```
+
+### Step 4: Verify
+
+Visit your Vercel URL and test the chatbot.
+
+---
+
+## 3. Updating Both Platforms
+
+### Deploy to Both at Once
+
+```bash
+# Commit changes
+git add -A
+git commit -m "Update: description of changes"
+
+# Push to GitHub (triggers Vercel)
+git push origin main
+
+# Push to HuggingFace (triggers Space rebuild)
+git push huggingface main
+```
+
+### Rebuild Frontend and Update Backend Static
+
+When you change frontend code:
 
 ```bash
 # Build frontend
 cd frontend
 npm run build
 
-# Copy to backend static folder
-mkdir -p ../backend/static
+# Copy to backend static
+rm -rf ../backend/static/*
 cp -r dist/* ../backend/static/
+
+# Commit and push both
+cd ..
+git add -A
+git commit -m "Update frontend build"
+git push origin main
+git push huggingface main
 ```
 
-### Step 2: Update Backend to Serve Static Files
+---
 
-Add to `main.py`:
-```python
-from fastapi.staticfiles import StaticFiles
+## 4. Troubleshooting
 
-# Serve static files (frontend)
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-```
+### HuggingFace Space Not Starting
 
-### Step 3: Deploy to Railway
+1. Check Space logs in the HuggingFace web UI
+2. Verify all secrets are set correctly
+3. Ensure Dockerfile exposes port 7860
+4. Check that `start.sh` is executable
+
+### Vercel API Calls Failing
+
+1. Check vercel.json rewrites point to correct HF Space URL
+2. Verify HF Space is running (check /api/health)
+3. Check browser console for CORS errors
+4. HF Space may need to wake up (free tier sleeps after inactivity)
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| HF Space sleeping | First request wakes it up (~30s cold start) |
+| CORS errors | Backend allows all origins (*) |
+| 504 Gateway Timeout | HF Space cold start, wait and retry |
+| Rate limited | Groq: 14,400/day, Tavily: 1,000/month |
+| Empty responses | Check GROQ_API_KEY is set in secrets |
+
+---
+
+## 5. Git Remotes Setup
 
 ```bash
-cd backend
-railway up
+# View current remotes
+git remote -v
+
+# Expected:
+# origin    https://github.com/iamabdullah1/personal-rag-llm-app.git (push)
+# huggingface https://huggingface.co/spaces/abdullah7570/personal-rag-chatbot (push)
+
+# Add remotes if missing
+git remote add origin https://github.com/iamabdullah1/personal-rag-llm-app.git
+git remote add huggingface https://huggingface.co/spaces/abdullah7570/personal-rag-chatbot
 ```
 
 ---
 
-## Option 3: Render (Free Alternative)
+## 6. Environment Variables Reference
 
-### Backend on Render
+### Backend (.env file for local development)
 
-1. Go to [render.com](https://render.com)
-2. New → Web Service → Connect GitHub repo
-3. Settings:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. Add environment variables
-
-### Frontend on Render (Static Site)
-
-1. New → Static Site
-2. **Build Command**: `npm run build`
-3. **Publish Directory**: `dist`
-
----
-
-## Environment Variables Reference
-
-### Backend (.env)
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `HUGGINGFACE_API_KEY` | ✅ | Get from huggingface.co/settings/tokens |
-| `ENVIRONMENT` | ❌ | `development` or `production` |
-| `DEBUG` | ❌ | `true` or `false` |
-
-### Frontend (Vercel/Render)
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `VITE_API_URL` | ✅ | Your backend URL (e.g., `https://api.example.com`) |
-
----
-
-## Post-Deployment Checklist
-
-- [ ] Backend health check: `curl https://your-backend.up.railway.app/api/health`
-- [ ] Frontend loads correctly
-- [ ] Chat messages work
-- [ ] Streaming responses work
-- [ ] Conversation persistence works
-- [ ] Rate limiting is active
-
----
-
-## Troubleshooting
-
-### CORS Errors
-Add to backend `main.py`:
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://your-frontend.vercel.app"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+```env
+GROQ_API_KEY=gsk_your_key_here
+TAVILY_API_KEY=tvly-dev-your_key_here
+GROQ_MODEL=llama-3.3-70b-versatile
+GITHUB_USERNAME=iamabdullah1
 ```
 
-### ChromaDB Persistence
-On free tiers, the file system may reset. For production, consider:
-- Railway Volumes (persistent storage)
-- Pinecone (managed vector DB)
-- Supabase pgvector
+### Production (HuggingFace Secrets)
 
-### Memory Issues
-Free tiers have limited RAM. If the embeddings model fails:
-- Use a smaller model
-- Or use HuggingFace Inference API for embeddings too
+Set these in Space Settings > Repository secrets. They are automatically available as environment variables in the Docker container.
 
 ---
 
-## Cost Estimate
-
-| Service | Free Tier | Paid |
-|---------|-----------|------|
-| Railway | 500 hrs/month | $5/month |
-| Vercel | 100GB bandwidth | $20/month |
-| Render | 750 hrs/month | $7/month |
-| HuggingFace API | Free tier available | Pay per use |
-
-**Total for portfolio project: $0/month** (within free tiers)
-
----
-
-## Quick Deploy Commands
-
-```bash
-# Backend (Railway)
-cd backend
-railway login
-railway init
-railway up
-
-# Frontend (Vercel)
-cd frontend
-vercel --prod
-```
-
-Your RAG chatbot will be live! 🎉
+*Deployment Guide v2.0 — Last Updated: June 2025*

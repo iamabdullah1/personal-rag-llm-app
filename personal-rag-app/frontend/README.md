@@ -1,74 +1,73 @@
-# Personal RAG Frontend
+# Personal RAG Chatbot — Frontend
 
-A beautiful, modern chat interface for your Personal RAG Assistant.
+React-based chat interface with real-time SSE streaming, tool status indicators, and dark mode.
 
-## 🚀 Quick Start
+**Version:** 2.0.0
 
-### Install Dependencies
+---
+
+## Tech Stack
+
+| Technology | Purpose |
+|-----------|---------|
+| React 18 | UI framework |
+| Vite | Build tool and dev server |
+| Tailwind CSS | Styling |
+| react-markdown | Markdown rendering in chat |
+| remark-gfm | GitHub-flavored markdown |
+
+## Features
+
+- **SSE Streaming** — Real-time word-by-word response rendering
+- **Tool Status Indicators** — Shows which tool the AI is using:
+  - "Searching knowledge base..." (personal knowledge)
+  - "Searching the web..." (web search)
+  - "Fetching GitHub stats..." (GitHub API)
+  - "Using tools..." (generic)
+- **45-second Timeout** — AbortController prevents infinite loading
+- **Dark/Light Mode** — Theme toggle with system preference detection
+- **Session Management** — Persists session_id for conversation continuity
+- **Mobile Responsive** — Works on all screen sizes
+- **Markdown Support** — Renders formatted responses with code blocks
+- **Error Handling** — Graceful error messages, never infinite loading
+
+## Development
+
 ```bash
+# Install dependencies
 npm install
-```
 
-### Run Development Server
-```bash
+# Start dev server (proxies /api to localhost:8000)
 npm run dev
-```
 
-The app will be available at: http://localhost:3000
-
-### Build for Production
-```bash
+# Build for production
 npm run build
 ```
 
-## ⚙️ Configuration
+Dev server: http://localhost:5173
 
-The frontend connects to your FastAPI backend through a proxy configured in `vite.config.js`.
+## API Integration
 
-- **Backend URL**: http://localhost:8000
-- **Frontend URL**: http://localhost:3000
+The frontend communicates with the backend via SSE streaming:
 
-## 🎨 Features
-
-- ✅ Real-time chat interface
-- ✅ Conversation history
-- ✅ Beautiful gradient design
-- ✅ Responsive layout (mobile-friendly)
-- ✅ Loading states & error handling
-- ✅ Auto-scroll to latest message
-- ✅ Clear chat functionality
-
-## 🔧 Tech Stack
-
-- **React 18** - UI framework
-- **Vite** - Build tool
-- **Axios** - HTTP client
-- **CSS3** - Styling with gradients & animations
-
-## 📝 Usage
-
-1. Make sure your backend is running on port 8000
-2. Start the frontend with `npm run dev`
-3. Open http://localhost:3000
-4. Start chatting with your RAG assistant!
-
-## 🤝 API Integration
-
-The frontend expects these backend endpoints:
-
-- `POST /chat` - Send messages and receive responses
-  ```json
-  {
-    "message": "your question",
-    "conversation_id": "optional-id"
-  }
-  ```
-
-Response format:
-```json
-{
-  "response": "assistant's answer",
-  "conversation_id": "conversation-id",
-  "sources": ["source1", "source2"]
-}
 ```
+POST /api/chat/stream
+Content-Type: application/json
+Body: { "question": "...", "session_id": "..." }
+
+SSE Response Events:
+  data: {"tool_status": "Searching knowledge base..."}
+  data: {"answer": "partial text"}
+  data: {"done": true, "session_id": "abc123"}
+```
+
+## Proxy Configuration
+
+- **Development**: Vite proxy in vite.config.js -> localhost:8000
+- **Production**: Vercel rewrites in vercel.json -> HuggingFace Space
+
+## Deployment
+
+Deployed on **Vercel** with auto-deploy from GitHub.
+
+See [DEPLOYMENT.md](../DEPLOYMENT.md) for details.

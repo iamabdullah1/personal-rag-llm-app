@@ -1,156 +1,81 @@
-# Conversation Memory & Caching Guide
+# Conversation Memory System — v2.0
 
-## ✅ What's Now Implemented
+> **Status: Fully Implemented**
 
-### 1. **Conversation Memory** (WORKING)
-Your chatbot now remembers previous questions in a conversation!
+## Overview
 
-#### How It Works:
+The conversation memory system stores chat history per session, providing context to the LLM for follow-up questions.
+
+## Architecture
+
 ```
-User: "What companies have you worked for?"
-Bot: "I worked at Meldin, Apexez, and now freelancing"
-
-User: "Tell me more about the first one"  
-Bot: [Remembers you asked about companies, knows "first one" refers to them]
-
-User: "What technologies did you use there?"
-Bot: [Remembers the context of the whole conversation]
+User sends message with session_id
+     |
+     v
+Conversation Store (in-memory dict)
+     |
+     +-- Retrieve last 6 messages for this session
+     +-- Append to LLM messages: [system_prompt] + [history] + [question]
+     |
+     v
+After response:
+     +-- Store user message + AI response in session history
+     +-- Trim to max 10 messages per session
+     +-- Auto-cleanup sessions older than 24 hours
 ```
 
-#### Key Features:
-- ✅ Stores last **10 messages** per session
-- ✅ Auto-deletes conversations after **24 hours**
-- ✅ Uses `session_id` to track conversations
-- ✅ Passes last **6 messages** to AI for context
+## Configuration
+
+| Setting | Value | Location |
+|---------|-------|----------|
+| Max messages per session | 10 | config.py (max_conversations) |
+| Messages sent to LLM | 6 (last 6) | rag_service.py |
+| Session TTL | 24 hours (86400s) | config.py (conversation_ttl) |
+| Storage | In-memory dict | conversation_store.py |
+| Session ID | Auto-generated UUID if not provided | conversation_store.py |
+
+## How It Works
+
+1. **Client sends session_id** (or gets one auto-generated)
+2. **Retrieve history**: Last 6 messages from the session
+3. **Build LLM messages**: [system_prompt, ...history, user_question]
+4. **After response**: Store both user message and AI response
+5. **Trim**: Keep only last 10 messages per session
+6. **Cleanup**: Remove sessions older than 24 hours
+
+## Integration with Caching
+
+The **semantic cache** (0.95 threshold) works alongside conversation memory:
+
+- Cache is checked BEFORE building the message history
+- If cache hits, the cached answer is streamed directly (no LLM call)
+- Cached answers still get stored in conversation history
+- This means cached answers maintain conversation context
+
+### Cache Details
+
+| Feature | Value |
+|---------|-------|
+| Threshold | 0.95 (cosine similarity) |
+| Max entries | 1000 |
+| TTL | 7 days |
+| Eviction | LRU |
+| Status | Fully implemented and working |
+
+## Limitations
+
+- **In-memory only**: Data lost on server restart
+- **No persistence**: No database backing (by design, for simplicity)
+- **Single instance**: No shared state between multiple server instances
+- **No user auth**: Sessions are client-managed via session_id
+
+## Future Improvements (Optional)
+
+- Redis-backed storage for persistence
+- User authentication for persistent history
+- Conversation summarization for longer context windows
+- Export/import conversation history
 
 ---
 
-## 📊 Performance Impact
-
-### Conversation Memory Speed:
-- **No impact on speed** - memory is in RAM
-- Actually makes responses MORE relevant
-- Uses less tokens by understanding context
-
-### Current Speed (Optimized):
-- Personal questions: **2-4 seconds**
-- General knowledge: **4-6 seconds**
-
----
-
-## 🔧 How to Use from Frontend
-
-### Example API Call with Session:
-```javascript
-// First question - creates new session
-const response1 = await fetch('http://localhost:8000/api/chat', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({
-    message: "What companies have you worked for?",
-    session_id: "user-abc-123"  // Keep same session_id
-  })
-});
-
-// Follow-up question - remembers first question
-const response2 = await fetch('http://localhost:8000/api/chat', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({
-    message: "Tell me about the first one",
-    session_id: "user-abc-123"  // SAME session_id
-  })
-});
-```
-
-**Important:** Use the SAME `session_id` for all messages in a conversation!
-
----
-
-## 💾 About Caching (Not Implemented Yet)
-
-### What is Caching?
-Store complete Q&A pairs so identical questions return instantly:
-
-```
-User 1: "What skills do you have?" → 3 sec (generates answer, saves to cache)
-User 2: "What skills do you have?" → 0.1 sec (returns from cache)
-```
-
-### Why Not Implemented Yet?
-- Conversation memory is more important first
-- Most questions are unique due to context
-- Can add later if needed
-
-### How to Add Caching (Future):
-```python
-# Simple in-memory cache
-response_cache = {}
-
-def get_cached_or_generate(question):
-    if question in response_cache:
-        return response_cache[question]  # Instant
-    
-    answer = generate_answer(question)  # 3 seconds
-    response_cache[question] = answer  # Save for next time
-    return answer
-```
-
----
-
-## 🎯 What You Get
-
-| Feature | Status | Benefit |
-|---------|--------|---------|
-| Conversation Memory | ✅ WORKING | Chatbot remembers context |
-| Session Tracking | ✅ WORKING | Multi-turn conversations |
-| Auto-cleanup | ✅ WORKING | Saves memory |
-| Fast Speed | ✅ WORKING | 2-4 sec responses |
-| Caching | ❌ Not needed yet | Can add if desired |
-
----
-
-## 📝 Example Conversations
-
-### Example 1: Follow-up Questions
-```
-User: "What technologies do you know?"
-Bot: "I specialize in React, Next.js, Node.js, MongoDB..."
-
-User: "Which of those do you prefer?"
-Bot: [Knows we're talking about React, Next.js, etc.]
-```
-
-### Example 2: Clarification
-```
-User: "Tell me about your projects"
-Bot: "I built an Education Consultancy site, MIS system..."
-
-User: "What was that second one?"
-Bot: [Knows "second one" = MIS system]
-```
-
-### Example 3: Deep Dive
-```
-User: "Where have you worked?"
-Bot: "Meldin, Apexez, and freelancing"
-
-User: "What did you do at Apexez?"
-Bot: [Remembers Apexez from earlier]
-
-User: "How long were you there?"
-Bot: [Still remembers we're talking about Apexez]
-```
-
----
-
-## 🚀 Next Steps
-
-Your chatbot now has:
-1. ✅ Personal data from your portfolio
-2. ✅ Web search for general knowledge
-3. ✅ Conversation memory
-4. ✅ Fast responses (2-4 sec)
-5. ✅ First-person responses
-
-**Ready to build the frontend?**
+*Updated for v2.0 — Caching and memory are both fully implemented*

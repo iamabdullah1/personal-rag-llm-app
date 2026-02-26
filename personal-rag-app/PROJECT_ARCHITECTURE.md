@@ -1,6 +1,10 @@
-# 🏗️ Personal RAG Application - Complete Architecture Guide
+# 🏗️ Personal RAG Application — Complete Architecture Guide (v2.0)
 
-> **A visual and detailed explanation of how your RAG (Retrieval-Augmented Generation) system works from data input to final response.**
+> **Agentic RAG with Groq Tool Calling, MCP Server, and Intelligent Fallback**
+> An AI-powered personal assistant that autonomously decides which tools to use.
+
+**Last Updated:** June 2025
+**Version:** 2.0.0 — Agentic Mode
 
 ---
 
@@ -9,1096 +13,417 @@
 1. [High-Level Overview](#high-level-overview)
 2. [System Architecture Diagram](#system-architecture-diagram)
 3. [Data Ingestion Pipeline](#data-ingestion-pipeline)
-4. [Query Processing Flow](#query-processing-flow)
+4. [Agentic Query Processing Flow](#agentic-query-processing-flow)
 5. [Component Deep Dives](#component-deep-dives)
 6. [Technology Stack](#technology-stack)
 7. [Data Flow Examples](#data-flow-examples)
+8. [File Structure](#file-structure)
+9. [Performance Characteristics](#performance-characteristics)
 
 ---
 
 ## 🎯 High-Level Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PERSONAL RAG APPLICATION                              │
-│                                                                              │
-│   "Ask questions about Abdullah Akram and get intelligent responses"         │
-│                                                                              │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
-│   │   Personal  │───▶│   Vector    │───▶│     LLM     │───▶│  Intelligent│ │
-│   │    Data     │    │   Search    │    │  Generation │    │   Response  │ │
-│   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘ │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### What Changed from v1.0 to v2.0?
 
-### What is RAG?
+| Aspect | v1.0 (Old) | v2.0 (Current) |
+|--------|-----------|-----------------|
+| **LLM** | HuggingFace Qwen 2.5 7B | Groq Llama 3.3 70B |
+| **Architecture** | Simple RAG chain | Agentic tool-calling loop |
+| **Web Search** | DuckDuckGo only | Tavily (primary) + DDG (fallback) |
+| **Cache Threshold** | 0.85 (caused odd answers) | 0.95 (precise matching) |
+| **Error Handling** | Basic try/catch | ToolCallError + fallback pipeline |
+| **Streaming** | Broken/incomplete | Full SSE with tool status events |
+| **MCP** | Not available | FastMCP server for Claude/Cursor |
+| **Deployment** | Railway/Render | HuggingFace Spaces + Vercel |
 
-**RAG = Retrieval-Augmented Generation**
+### What is Agentic RAG?
 
-Instead of relying only on the LLM's training data, RAG:
-1. **Retrieves** relevant information from YOUR personal documents
-2. **Augments** the LLM prompt with this context
-3. **Generates** a response based on YOUR actual data
+**Agentic RAG** = The LLM autonomously decides WHAT tools to use and WHEN.
+
+Unlike traditional RAG (retrieve then generate), Agentic RAG:
+1. **Receives** the user's question
+2. **Decides** which tools to call (personal knowledge, web search, GitHub)
+3. **Executes** tools and receives results
+4. **Reasons** over results — may call MORE tools if needed (up to 3 rounds)
+5. **Generates** a final answer with all gathered context
+6. **Falls back** gracefully if tool calling fails (user ALWAYS gets an answer)
 
 ---
 
 ## 🏛️ System Architecture Diagram
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    FRONTEND (React + Vite)                                │
-│                                      http://localhost:3000                                │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────┐ │
-│  │                              💬 Chat Interface                                       │ │
-│  │                                                                                      │ │
-│  │   ┌────────────────────────────────────────────────────────────────────────────┐   │ │
-│  │   │  User: "What projects have you built?"                                     │   │ │
-│  │   └────────────────────────────────────────────────────────────────────────────┘   │ │
-│  │   ┌────────────────────────────────────────────────────────────────────────────┐   │ │
-│  │   │  AI: "I've built several exciting projects! My favorites include..."       │   │ │
-│  │   └────────────────────────────────────────────────────────────────────────────┘   │ │
-│  │                                                                                      │ │
-│  └─────────────────────────────────────────────────────────────────────────────────────┘ │
-│                                           │                                               │
-│                                           │ HTTP POST /api/chat                           │
-│                                           ▼                                               │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
-                                            │
-                                            │ Vite Proxy
-                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                                  BACKEND (FastAPI + Python)                               │
-│                                      http://localhost:8000                                │
-│                                                                                           │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────┐ │
-│  │                              🔀 API Router (/api/chat)                               │ │
-│  └─────────────────────────────────────────────────────────────────────────────────────┘ │
-│                                           │                                               │
-│                                           ▼                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────┐ │
-│  │                              🧠 RAG Service (Orchestrator)                           │ │
-│  │  ┌─────────────────────────────────────────────────────────────────────────────┐    │ │
-│  │  │                                                                              │    │ │
-│  │  │  1. Check Semantic Cache ──────────┐                                        │    │ │
-│  │  │          │                         │                                        │    │ │
-│  │  │          ▼                         ▼                                        │    │ │
-│  │  │  ┌──────────────┐          ┌──────────────┐                                │    │ │
-│  │  │  │ Exact Match? │──YES────▶│ Return Cached│                                │    │ │
-│  │  │  │  (≥85% sim)  │          │   Response   │                                │    │ │
-│  │  │  └──────────────┘          └──────────────┘                                │    │ │
-│  │  │          │ NO                                                               │    │ │
-│  │  │          ▼                                                                  │    │ │
-│  │  │  2. Find Similar Q&As ─────────────┐                                       │    │ │
-│  │  │          │                         │ (For additional context)               │    │ │
-│  │  │          ▼                         ▼                                        │    │ │
-│  │  │  3. Vector Search ──────────────────────────┐                              │    │ │
-│  │  │          │                                  │                              │    │ │
-│  │  │          ▼                                  ▼                              │    │ │
-│  │  │  4. Is Personal Question? ──────────────────────┐                          │    │ │
-│  │  │          │                                      │                          │    │ │
-│  │  │     YES  │  NO                                  │                          │    │ │
-│  │  │          ▼                                      ▼                          │    │ │
-│  │  │  [Skip Web Search]            5. DuckDuckGo Web Search                     │    │ │
-│  │  │          │                                      │                          │    │ │
-│  │  │          └──────────────────────────────────────┘                          │    │ │
-│  │  │                         │                                                   │    │ │
-│  │  │                         ▼                                                   │    │ │
-│  │  │  6. Build Combined Context ─────────────────────┐                          │    │ │
-│  │  │     • Personal documents                        │                          │    │ │
-│  │  │     • Similar cached Q&As                       │                          │    │ │
-│  │  │     • Web search results                        │                          │    │ │
-│  │  │     • Conversation history                      │                          │    │ │
-│  │  │                         │                       │                          │    │ │
-│  │  │                         ▼                       │                          │    │ │
-│  │  │  7. Call HuggingFace LLM ─────────────────────▶│                          │    │ │
-│  │  │          │                                      │                          │    │ │
-│  │  │          ▼                                      │                          │    │ │
-│  │  │  8. Cache Response & Return                     │                          │    │ │
-│  │  │                                                                              │    │ │
-│  │  └─────────────────────────────────────────────────────────────────────────────┘    │ │
-│  └─────────────────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                           │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐              │
-│  │  📦 Vector Store    │  │  🧠 Semantic Cache  │  │  💬 Conversation    │              │
-│  │  (ChromaDB)         │  │  (In-Memory)        │  │     Store           │              │
-│  │                     │  │                     │  │  (In-Memory)        │              │
-│  │  • Stores document  │  │  • Q&A pairs        │  │                     │              │
-│  │    embeddings       │  │  • 85% threshold    │  │  • Session history  │              │
-│  │  • Similarity       │  │  • 7-day TTL        │  │  • 10 msg limit     │              │
-│  │    search           │  │  • 1000 max size    │  │  • 24hr TTL         │              │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘              │
-│                                                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
-                                            │
-                                            │ API Calls
-                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   EXTERNAL SERVICES                                       │
-│                                                                                           │
-│  ┌─────────────────────────────────┐    ┌─────────────────────────────────────────────┐ │
-│  │  🤗 HuggingFace Inference API   │    │  🦆 DuckDuckGo Search API                   │ │
-│  │                                 │    │                                             │ │
-│  │  Model: Qwen/Qwen2.5-7B-Instruct│    │  • FREE, no API key needed                 │ │
-│  │  Endpoint: router.huggingface.co│    │  • Used for general knowledge questions    │ │
-│  │  Cost: FREE                     │    │                                             │ │
-│  └─────────────────────────────────┘    └─────────────────────────────────────────────┘ │
-│                                                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
+FRONTEND (React + Vite + Tailwind CSS) — Deployed on Vercel
+==============================================================
+  Chat Interface
+  - User types question
+  - Tool status indicators (Searching knowledge base / Searching web / Fetching GitHub)
+  - SSE streaming (word by word)
+  - 45-second timeout with AbortController
+  - Dark/Light mode toggle
+  - Mobile responsive
+          |
+          | POST /api/chat/stream (SSE)
+          | Vercel rewrites -> HuggingFace Space
+          v
+
+BACKEND (FastAPI + Python 3.12) — Deployed on HuggingFace Spaces (Docker)
+===========================================================================
+
+  API Layer (Middleware Chain):
+    CORS (*) -> Rate Limiter (30/min) -> GZip -> Timing Header
+    Routes: /api/health | /api/chat | /api/chat/stream | /docs
+
+          |
+          v
+
+  RAG Service (Agentic Orchestrator) — rag_service.py
+  =====================================================
+    Step 1: Check Semantic Cache (0.95 threshold)
+            - HIT  -> Stream cached answer word-by-word -> DONE
+            - MISS -> Continue to tool-calling loop
+
+    Step 2: Build messages array
+            [system_prompt] + [conversation_history (last 6)] + [user_question]
+
+    Step 3: AGENTIC TOOL-CALLING LOOP (max 3 rounds)
+            Send to Groq (llama-3.3-70b) with 3 tool definitions
+              -> LLM decides: call tools? 
+                 YES -> Execute tools -> Append results -> Next round
+                 NO  -> Generate final answer -> Stream to user
+
+    Step 4: If ToolCallError at any point -> FALLBACK MODE
+            Manual vector search + web search -> enriched prompt -> Groq (no tools)
+
+    Step 5: Stream answer via SSE -> Cache Q&A -> Store conversation -> done event
+
+          |
+          v
+
+  3 Shared Tools — tools.py (used by RAG Service + MCP Server)
+  ==============================================================
+    search_personal_knowledge(query)  -> ChromaDB vector search (top 3 chunks)
+    search_web(query)                 -> Tavily API (primary) / DuckDuckGo (fallback)
+    get_github_stats(username)        -> GitHub REST API (profile + top 10 repos)
+
+          |
+          v
+
+  Data Stores (all in-memory or local file)
+  ==========================================
+    Vector Store (ChromaDB)      -> ./chroma_db/ (HNSW index, all-MiniLM-L6-v2)
+    Semantic Cache (In-Memory)   -> 0.95 threshold, 7-day TTL, 1000 max, LRU
+    Conversation Store (In-Mem)  -> 10 msg limit per session, 24hr TTL
+
+          |
+          v
+
+  MCP Server (Optional) — mcp_server.py
+  =======================================
+    FastMCP server exposing all 3 tools via Model Context Protocol
+    For use with: Claude Desktop, Cursor IDE
+    Run: python mcp_server.py
+
+===========================================================================
+
+EXTERNAL SERVICES (all free tier)
+==================================
+  Groq Cloud         -> LLM: Llama 3.3 70B, tool calling + streaming, FREE 14,400 req/day
+  Tavily             -> Web search, FREE 1,000 searches/month, fallback: DuckDuckGo
+  GitHub API         -> Public REST API, profile + repos, no auth needed
 ```
 
 ---
 
 ## 📥 Data Ingestion Pipeline
 
-### Step-by-Step: How Your Personal Data Becomes Searchable
-
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                           DATA INGESTION PIPELINE                                        │
-│                           (Run once: python ingest_data.py)                              │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+Step 1: LOAD
+  - Read 9 text files from data/personal/
+  - Files: about_me.txt, contact.txt, education.txt, hobbies_sports.txt,
+           projects.txt, skills.txt, testimonials.txt, this_rag_project.txt,
+           work_experience.txt
 
-STEP 1: LOAD RAW DOCUMENTS
-══════════════════════════
+Step 2: CHUNK
+  - RecursiveCharacterTextSplitter
+  - Chunk size: 1000 characters
+  - Overlap: 200 characters
+  - Result: ~15-25 text chunks
 
-    📁 data/personal/
-    ├── about_me.txt          ─────┐
-    ├── contact.txt           ─────┤
-    ├── projects.txt          ─────┼────▶  DirectoryLoader
-    ├── skills.txt            ─────┤       (LangChain)
-    ├── testimonials.txt      ─────┤
-    └── work_experience.txt   ─────┘
-                                              │
-                                              ▼
-                                   ┌─────────────────────┐
-                                   │  6 Raw Documents    │
-                                   │  (Full text files)  │
-                                   └─────────────────────┘
+Step 3: EMBED
+  - Model: sentence-transformers/all-MiniLM-L6-v2
+  - Runs locally on CPU (no API call, no cost)
+  - Output: 384-dimensional vectors
 
+Step 4: STORE
+  - Database: ChromaDB (local file at ./chroma_db/)
+  - Index: HNSW (Hierarchical Navigable Small World)
+  - Ready for cosine similarity search
 
-STEP 2: CHUNK THE DOCUMENTS
-═══════════════════════════
-
-    ┌──────────────────────────────────────────────────────────────────────┐
-    │                    RecursiveCharacterTextSplitter                     │
-    │                                                                       │
-    │    Settings:                                                          │
-    │    • chunk_size: 1000 characters                                     │
-    │    • chunk_overlap: 200 characters (prevents context loss)           │
-    │                                                                       │
-    │    Why Chunking?                                                      │
-    │    • LLMs have token limits                                          │
-    │    • Smaller chunks = more precise retrieval                         │
-    │    • Overlap ensures no information is cut mid-sentence              │
-    └──────────────────────────────────────────────────────────────────────┘
-
-    Example of Chunking:
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │ Original Document (about_me.txt - 2500 chars):                          │
-    │ ════════════════════════════════════════════                            │
-    │ "Hi, I'm Abdullah Akram, a passionate Full-Stack Developer..."          │
-    └─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-    │    Chunk 1      │  │    Chunk 2      │  │    Chunk 3      │
-    │  (chars 0-1000) │  │ (chars 800-1800)│  │(chars 1600-2500)│
-    │                 │  │                 │  │                 │
-    │  "Hi, I'm       │  │  "...modern web │  │  "...scalable   │
-    │   Abdullah..."  │  │   applications" │  │   solutions..." │
-    └─────────────────┘  └─────────────────┘  └─────────────────┘
-           │                     │                    │
-           └──────────┬──────────┴────────────────────┘
-                      │
-                      ▼
-           ┌─────────────────────┐
-           │  ~15-20 Total Chunks │
-           │   (from 6 documents) │
-           └─────────────────────┘
-
-
-STEP 3: GENERATE EMBEDDINGS
-═══════════════════════════
-
-    ┌──────────────────────────────────────────────────────────────────────┐
-    │               sentence-transformers/all-MiniLM-L6-v2                  │
-    │                                                                       │
-    │    • Runs LOCALLY (no API calls needed)                              │
-    │    • Uses PyTorch under the hood                                     │
-    │    • Converts text → 384-dimensional vector                          │
-    │    • Captures SEMANTIC MEANING (not just keywords)                   │
-    └──────────────────────────────────────────────────────────────────────┘
-
-    How Embedding Works:
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                         │
-    │   Text: "I'm a Full-Stack Developer specializing in React"             │
-    │                            │                                            │
-    │                            ▼                                            │
-    │              ┌─────────────────────────┐                               │
-    │              │   Embedding Model       │                               │
-    │              │   (Neural Network)      │                               │
-    │              └─────────────────────────┘                               │
-    │                            │                                            │
-    │                            ▼                                            │
-    │   Vector: [0.023, -0.156, 0.891, 0.034, ... , -0.445]                  │
-    │           └──────────────── 384 dimensions ─────────────┘              │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
-
-    Why Vectors?
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                         │
-    │   Similar meanings → Similar vectors → Close in vector space           │
-    │                                                                         │
-    │   "React developer"     ●───────● "Frontend engineer"                  │
-    │                           close!                                        │
-    │                                                                         │
-    │   "React developer"     ●─────────────────────● "Pizza recipe"         │
-    │                                    far apart!                           │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
-
-
-STEP 4: STORE IN VECTOR DATABASE
-════════════════════════════════
-
-    ┌──────────────────────────────────────────────────────────────────────┐
-    │                          ChromaDB                                     │
-    │                   (Local Vector Database)                             │
-    │                                                                       │
-    │    Location: ./chroma_db/                                            │
-    │    Storage: SQLite + Parquet files                                   │
-    │    Indexes: HNSW (Hierarchical Navigable Small World)                │
-    └──────────────────────────────────────────────────────────────────────┘
-
-    What's Stored:
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                         │
-    │   ┌──────────────────────────────────────────────────────────────────┐ │
-    │   │  ID: chunk_001                                                    │ │
-    │   │  Text: "Hi, I'm Abdullah Akram, a passionate Full-Stack..."      │ │
-    │   │  Vector: [0.023, -0.156, 0.891, ...]                             │ │
-    │   │  Metadata: {source: "data/personal/about_me.txt"}                │ │
-    │   └──────────────────────────────────────────────────────────────────┘ │
-    │                                                                         │
-    │   ┌──────────────────────────────────────────────────────────────────┐ │
-    │   │  ID: chunk_002                                                    │ │
-    │   │  Text: "My technical skills include React, Node.js, Python..."   │ │
-    │   │  Vector: [0.145, 0.023, -0.567, ...]                             │ │
-    │   │  Metadata: {source: "data/personal/skills.txt"}                  │ │
-    │   └──────────────────────────────────────────────────────────────────┘ │
-    │                                                                         │
-    │   ... (15-20 more chunks)                                              │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
-
-
-FINAL RESULT
-════════════
-
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                         │
-    │   📁 ./chroma_db/                                                       │
-    │   ├── chroma.sqlite3           (metadata & index)                      │
-    │   └── xxxxxxxx-xxxx-xxxx/      (vector data)                           │
-    │       ├── data_level0.bin      (vectors)                               │
-    │       └── length.bin           (lengths)                               │
-    │                                                                         │
-    │   ✅ Ready for semantic search!                                         │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
+Run command: python ingest_data.py
 ```
 
 ---
 
-## 🔍 Query Processing Flow
+## 🔍 Agentic Query Processing Flow
 
-### What Happens When You Ask a Question?
+### Example: "What projects have you built using React?"
 
 ```
-USER ASKS: "What projects have you built?"
-══════════════════════════════════════════
+STAGE 1: CACHE CHECK
+  - Embed query -> compare with cached questions
+  - Similarity 0.82 < 0.95 threshold -> MISS -> continue
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         COMPLETE QUERY FLOW                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
+STAGE 2: BUILD MESSAGES
+  - System prompt: "You are a helpful assistant for Abdullah Akram..."
+  - History: [last 6 messages from session]
+  - User: "What projects have you built using React?"
 
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 1: CACHE CHECK (⚡ Instant Response Layer)                          ║
-╚═══════════════════════════════════════════════════════════════════════════╝
+STAGE 3: GROQ CALL #1 (with tools)
+  - Send messages + 3 tool definitions to Groq
+  - LLM decides: call search_personal_knowledge("React projects built")
+  - Response: tool_calls array with function name + arguments
 
-    User Question: "What projects have you built?"
-              │
-              ▼
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                      SEMANTIC CACHE CHECK                            │
-    │                                                                      │
-    │   1. Convert question to embedding vector                           │
-    │   2. Compare with all cached Q&A embeddings                         │
-    │   3. Find highest similarity score                                  │
-    │                                                                      │
-    │   Cached Questions:                                                  │
-    │   ┌────────────────────────────────────┬────────────────────┐       │
-    │   │ "What have you built?"             │ Similarity: 94% ✓  │       │
-    │   │ "Tell me about your skills"        │ Similarity: 45%    │       │
-    │   │ "Where do you work?"               │ Similarity: 23%    │       │
-    │   └────────────────────────────────────┴────────────────────┘       │
-    │                                                                      │
-    │   Threshold: 85%                                                     │
-    │   Result: 94% ≥ 85% → EXACT MATCH FOUND!                           │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-    ┌─────────────────┐
-    │  IF MATCH ≥85%  │──────▶ Return cached answer (⚡ <50ms response)
-    │  Skip to END    │
-    └─────────────────┘
-              │
-              │ NO MATCH
-              ▼
+STAGE 4: TOOL EXECUTION
+  - Execute search_personal_knowledge("React projects built")
+  - ChromaDB returns top 3 chunks from projects.txt and skills.txt
+  - Append tool result to messages
 
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 2: SIMILARITY SEARCH (Finding Similar Past Q&As)                    ║
-╚═══════════════════════════════════════════════════════════════════════════╝
+STAGE 5: GROQ CALL #2 (with tool results)
+  - LLM has enough context -> generates final answer (no more tool calls)
+  - Response: streaming text content
 
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                   FIND SIMILAR CACHED Q&As                           │
-    │                                                                      │
-    │   Purpose: Even if no exact match, use similar Q&As as context      │
-    │                                                                      │
-    │   Returns top 3 similar (but below 85% threshold):                  │
-    │   ┌────────────────────────────────────┬────────────────────┐       │
-    │   │ "What have you created?"           │ Similarity: 72%    │       │
-    │   │ "Show me your work"                │ Similarity: 65%    │       │
-    │   │ "What's your portfolio?"           │ Similarity: 58%    │       │
-    │   └────────────────────────────────────┴────────────────────┘       │
-    │                                                                      │
-    │   These Q&As will be added to the LLM prompt as context!           │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
+STAGE 6: STREAM RESPONSE
+  - Token by token via SSE
+  - Frontend renders progressively
+  - Events: tool_status -> answer chunks -> done
 
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 3: VECTOR SEARCH (Finding Relevant Documents)                       ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-    Question: "What projects have you built?"
-              │
-              ▼
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                    EMBEDDING GENERATION                              │
-    │                                                                      │
-    │   Input: "What projects have you built?"                            │
-    │                      │                                               │
-    │                      ▼                                               │
-    │          ┌─────────────────────────┐                                │
-    │          │  all-MiniLM-L6-v2       │                                │
-    │          │  (Same model as ingest) │                                │
-    │          └─────────────────────────┘                                │
-    │                      │                                               │
-    │                      ▼                                               │
-    │   Output: [0.234, -0.567, 0.123, ... ] (384 dimensions)             │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                    SIMILARITY SEARCH IN CHROMADB                     │
-    │                                                                      │
-    │   Search Type: Cosine Similarity                                    │
-    │   K (results): 5 documents                                          │
-    │                                                                      │
-    │   ┌─────────────────────────────────────────────────────────────┐   │
-    │   │                    VECTOR SPACE                              │   │
-    │   │                                                              │   │
-    │   │        Query ●                                               │   │
-    │   │              ╲                                                │   │
-    │   │               ╲  0.92                                        │   │
-    │   │                ╲                                             │   │
-    │   │                 ● projects.txt (chunk 1)  ← MOST RELEVANT   │   │
-    │   │                                                              │   │
-    │   │           ● projects.txt (chunk 2) [0.87]                   │   │
-    │   │                                                              │   │
-    │   │        ● skills.txt (chunk 1) [0.76]                        │   │
-    │   │                                                              │   │
-    │   │     ● work_experience.txt [0.71]                            │   │
-    │   │                                                              │   │
-    │   │   ● about_me.txt [0.65]                                     │   │
-    │   │                                                              │   │
-    │   └─────────────────────────────────────────────────────────────┘   │
-    │                                                                      │
-    │   Returns: Top 5 most similar document chunks                       │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 4: QUESTION CLASSIFICATION                                          ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                  IS THIS A PERSONAL QUESTION?                        │
-    │                                                                      │
-    │   Keywords checked:                                                  │
-    │   • "you", "your", "yourself" ← Found "you"!                        │
-    │   • "project", "skill", "experience" ← Found "project"!             │
-    │   • "built", "created", "developed" ← Found "built"!                │
-    │   • "portfolio", "work", "job"                                      │
-    │   • "hobby", "sport", "education"                                   │
-    │                                                                      │
-    │   Question: "What projects have YOU BUILT?"                         │
-    │                                  ▲    ▲                              │
-    │                                  │    │                              │
-    │                            Matches 3 keywords!                       │
-    │                                                                      │
-    │   Decision: ✅ PERSONAL QUESTION → Skip web search                  │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              │ (If NOT personal → Would do DuckDuckGo web search)
-              ▼
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 5: CONTEXT ASSEMBLY                                                 ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                    BUILD COMBINED CONTEXT                            │
-    │                                                                      │
-    │   ┌───────────────────────────────────────────────────────────────┐ │
-    │   │ PERSONAL CONTEXT (about me):                                   │ │
-    │   │                                                                │ │
-    │   │ # Abdullah Akram - Projects                                    │ │
-    │   │                                                                │ │
-    │   │ ## Project 1: Personal RAG Application                        │ │
-    │   │ A sophisticated AI-powered portfolio assistant built with      │ │
-    │   │ React, FastAPI, and LangChain...                              │ │
-    │   │                                                                │ │
-    │   │ ## Project 2: E-Commerce Platform                             │ │
-    │   │ Full-stack MERN application with payment integration...       │ │
-    │   │                                                                │ │
-    │   │ [More retrieved document chunks...]                           │ │
-    │   └───────────────────────────────────────────────────────────────┘ │
-    │                                                                      │
-    │   ┌───────────────────────────────────────────────────────────────┐ │
-    │   │ SIMILAR PREVIOUS QUESTIONS & ANSWERS:                          │ │
-    │   │                                                                │ │
-    │   │ 1. Q: What have you created?                                  │ │
-    │   │    A: I've created several exciting projects including...     │ │
-    │   │                                                                │ │
-    │   │ 2. Q: Show me your work                                       │ │
-    │   │    A: Here's an overview of my key projects...                │ │
-    │   └───────────────────────────────────────────────────────────────┘ │
-    │                                                                      │
-    │   ┌───────────────────────────────────────────────────────────────┐ │
-    │   │ CONVERSATION HISTORY (last 6 messages):                        │ │
-    │   │                                                                │ │
-    │   │ User: Hi, who are you?                                        │ │
-    │   │ Assistant: Hi! I'm Abdullah Akram, a Full-Stack Developer...  │ │
-    │   └───────────────────────────────────────────────────────────────┘ │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 6: LLM GENERATION                                                   ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                    HUGGINGFACE API CALL                              │
-    │                                                                      │
-    │   Endpoint: https://router.huggingface.co/v1/chat/completions       │
-    │   Model: Qwen/Qwen2.5-7B-Instruct                                   │
-    │                                                                      │
-    │   ┌───────────────────────────────────────────────────────────────┐ │
-    │   │                     REQUEST PAYLOAD                            │ │
-    │   │                                                                │ │
-    │   │ {                                                              │ │
-    │   │   "model": "Qwen/Qwen2.5-7B-Instruct",                        │ │
-    │   │   "messages": [                                                │ │
-    │   │     {                                                          │ │
-    │   │       "role": "system",                                        │ │
-    │   │       "content": "You ARE the person whose portfolio this     │ │
-    │   │                   is. Always respond in FIRST PERSON..."      │ │
-    │   │     },                                                         │ │
-    │   │     {                                                          │ │
-    │   │       "role": "user",                                          │ │
-    │   │       "content": "Hi, who are you?"                           │ │
-    │   │     },                                                         │ │
-    │   │     {                                                          │ │
-    │   │       "role": "assistant",                                     │ │
-    │   │       "content": "Hi! I'm Abdullah Akram..."                  │ │
-    │   │     },                                                         │ │
-    │   │     {                                                          │ │
-    │   │       "role": "user",                                          │ │
-    │   │       "content": "PERSONAL CONTEXT: [docs]...                 │ │
-    │   │                   SIMILAR Q&As: [cache]...                    │ │
-    │   │                   Question: What projects have you built?"    │ │
-    │   │     }                                                          │ │
-    │   │   ],                                                           │ │
-    │   │   "max_tokens": 300,                                          │ │
-    │   │   "temperature": 0.7                                          │ │
-    │   │ }                                                              │ │
-    │   └───────────────────────────────────────────────────────────────┘ │
-    │                                                                      │
-    │                              │                                       │
-    │                              ▼                                       │
-    │                                                                      │
-    │   ┌───────────────────────────────────────────────────────────────┐ │
-    │   │                     LLM RESPONSE                               │ │
-    │   │                                                                │ │
-    │   │ "I've built several exciting projects! Here are some of my    │ │
-    │   │  favorites:                                                    │ │
-    │   │                                                                │ │
-    │   │  1. **Personal RAG Application** - The very system you're     │ │
-    │   │     using right now! It's an AI-powered portfolio assistant   │ │
-    │   │     built with React, FastAPI, and LangChain.                 │ │
-    │   │                                                                │ │
-    │   │  2. **E-Commerce Platform** - A full-stack MERN application   │ │
-    │   │     with Stripe payment integration and admin dashboard.      │ │
-    │   │                                                                │ │
-    │   │  Would you like to know more about any specific project?"     │ │
-    │   └───────────────────────────────────────────────────────────────┘ │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║  STAGE 7: RESPONSE HANDLING                                                ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                    POST-PROCESSING                                   │
-    │                                                                      │
-    │   1. SAVE TO CONVERSATION STORE                                     │
-    │      ┌─────────────────────────────────────────────────────────┐   │
-    │      │ Session: abc-123-def                                     │   │
-    │      │ Messages: [                                              │   │
-    │      │   {role: "user", content: "What projects..."},          │   │
-    │      │   {role: "assistant", content: "I've built..."}         │   │
-    │      │ ]                                                        │   │
-    │      └─────────────────────────────────────────────────────────┘   │
-    │                                                                      │
-    │   2. CACHE THE Q&A PAIR                                             │
-    │      ┌─────────────────────────────────────────────────────────┐   │
-    │      │ Question: "What projects have you built?"                │   │
-    │      │ Answer: "I've built several exciting projects..."       │   │
-    │      │ Embedding: [0.234, -0.567, ...]                         │   │
-    │      │ Timestamp: 2026-01-17T10:00:00                          │   │
-    │      │ Hit Count: 0                                             │   │
-    │      └─────────────────────────────────────────────────────────┘   │
-    │                                                                      │
-    │   3. BUILD FINAL RESPONSE                                           │
-    │      ┌─────────────────────────────────────────────────────────┐   │
-    │      │ {                                                        │   │
-    │      │   "answer": "I've built several exciting...",           │   │
-    │      │   "sources": [                                           │   │
-    │      │     {source: "projects.txt", score: 0.92},              │   │
-    │      │     {source: "skills.txt", score: 0.76},                │   │
-    │      │     {source: "Semantic Cache", score: null}             │   │
-    │      │   ],                                                     │   │
-    │      │   "session_id": "abc-123-def",                          │   │
-    │      │   "cache_hit": false                                     │   │
-    │      │ }                                                        │   │
-    │      └─────────────────────────────────────────────────────────┘   │
-    │                                                                      │
-    └─────────────────────────────────────────────────────────────────────┘
-              │
-              ▼
-        ┌─────────────┐
-        │  RESPONSE   │───────▶ Sent back to Frontend Chat UI
-        │  COMPLETE!  │
-        └─────────────┘
+STAGE 7: POST-PROCESS
+  - Cache the Q&A pair for future similar questions
+  - Store in conversation history for session context
+  - Send done event to frontend
 ```
+
+> For extensive micro-step diagrams of every component, see **FLOW_DIAGRAM.md**
 
 ---
 
 ## 🔧 Component Deep Dives
 
-### 1. Embedding Model (sentence-transformers/all-MiniLM-L6-v2)
+### 1. LLM — Groq (Llama 3.3 70B Versatile)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    ALL-MINILM-L6-V2 EMBEDDING MODEL                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   Type:           Sentence Transformer (BERT-based)                         │
-│   Parameters:     22.7 million                                              │
-│   Dimensions:     384                                                        │
-│   Max Tokens:     256                                                        │
-│   Speed:          ~14,000 sentences/second (CPU)                            │
-│   Size:           ~80 MB                                                     │
-│                                                                              │
-│   ┌────────────────────────────────────────────────────────────────────┐   │
-│   │                    HOW IT WORKS                                     │   │
-│   │                                                                     │   │
-│   │   Input Text                                                        │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   ┌─────────────┐                                                  │   │
-│   │   │ Tokenizer   │ → Splits into subword tokens                     │   │
-│   │   └─────────────┘                                                  │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   ┌─────────────┐                                                  │   │
-│   │   │ BERT Layers │ → 6 transformer layers                           │   │
-│   │   │ (L6)        │                                                  │   │
-│   │   └─────────────┘                                                  │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   ┌─────────────┐                                                  │   │
-│   │   │ Mean Pooling│ → Average all token embeddings                   │   │
-│   │   └─────────────┘                                                  │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   384-dim Vector                                                    │   │
-│   │                                                                     │   │
-│   └────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   WHY THIS MODEL?                                                            │
-│   ✅ Fast (optimized for speed)                                             │
-│   ✅ Good quality (trained on 1B+ sentence pairs)                           │
-│   ✅ Small size (runs on CPU easily)                                        │
-│   ✅ FREE (no API costs)                                                    │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Feature | Details |
+|---------|---------|
+| **Provider** | Groq Cloud (console.groq.com) |
+| **Model** | llama-3.3-70b-versatile |
+| **Parameters** | 70 Billion |
+| **Speed** | ~200 tokens/sec (Groq LPU hardware) |
+| **Tool Calling** | Native OpenAI-compatible format |
+| **Streaming** | Yes (SSE-compatible) |
+| **Cost** | FREE (14,400 requests/day) |
+| **Retry** | 3 attempts with exponential backoff (1s, 2s) |
+| **Fallback** | On ToolCallError -> direct answer without tools |
 
-### 2. ChromaDB Vector Store
+### 2. Embedding Model (all-MiniLM-L6-v2)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           CHROMADB ARCHITECTURE                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   Type:           Open-source embedding database                            │
-│   Storage:        Local disk (./chroma_db/)                                 │
-│   Index:          HNSW (Hierarchical Navigable Small World)                 │
-│                                                                              │
-│   ┌────────────────────────────────────────────────────────────────────┐   │
-│   │                    HNSW INDEX STRUCTURE                             │   │
-│   │                                                                     │   │
-│   │   Layer 3:        ●───────────────────●                            │   │
-│   │   (sparse)        │                   │                            │   │
-│   │                   │                   │                            │   │
-│   │   Layer 2:      ●─┼─●───────●───────●─┼─●                          │   │
-│   │   (medium)      │ │ │       │       │ │ │                          │   │
-│   │                 │ │ │       │       │ │ │                          │   │
-│   │   Layer 1:    ●─●─●─●─●───●─●───●───●─●─●─●                        │   │
-│   │   (dense)     │ │ │ │ │   │ │   │   │ │ │ │                        │   │
-│   │               │ │ │ │ │   │ │   │   │ │ │ │                        │   │
-│   │   Layer 0:  ●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●                      │   │
-│   │   (all)                                                             │   │
-│   │                                                                     │   │
-│   │   Search: Start from top layer, navigate down to find neighbors    │   │
-│   │   Complexity: O(log N) instead of O(N) for brute force            │   │
-│   │                                                                     │   │
-│   └────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   FILE STRUCTURE:                                                            │
-│   ./chroma_db/                                                               │
-│   ├── chroma.sqlite3        ← Metadata & configuration                      │
-│   └── {collection-id}/                                                       │
-│       ├── data_level0.bin   ← Vector data                                   │
-│       ├── header.bin        ← Index header                                  │
-│       ├── length.bin        ← Length information                            │
-│       └── link_lists.bin    ← HNSW graph links                              │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Feature | Details |
+|---------|---------|
+| **Type** | Sentence Transformer (BERT-based) |
+| **Parameters** | 22.7 million |
+| **Dimensions** | 384 |
+| **Runs** | LOCALLY on CPU (no API, no cost, no latency) |
+| **Speed** | ~14,000 sentences/sec |
+| **Size** | ~80 MB |
+| **Used For** | Vector search + Semantic cache similarity |
 
-### 3. Semantic Cache (Multi-Level Caching)
+### 3. ChromaDB Vector Store
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        SEMANTIC CACHE SYSTEM                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   ┌───────────────────────────────────────────────────────────────────┐    │
-│   │                    TWO-LEVEL CACHING                               │    │
-│   │                                                                    │    │
-│   │   ╔═══════════════════════════════════════════════════════════╗   │    │
-│   │   ║  LEVEL 1: EXACT MATCH CACHE                                ║   │    │
-│   │   ║  ─────────────────────────────                             ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ║  Threshold: ≥ 85% similarity                               ║   │    │
-│   │   ║  Action: Return cached answer IMMEDIATELY                  ║   │    │
-│   │   ║  Latency: < 50ms ⚡                                        ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ║  Example:                                                   ║   │    │
-│   │   ║  Q1: "What are your skills?"                               ║   │    │
-│   │   ║  Q2: "What skills do you have?"                            ║   │    │
-│   │   ║  Similarity: 91% → Return cached answer for Q1            ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ╚═══════════════════════════════════════════════════════════╝   │    │
-│   │                           │                                        │    │
-│   │                           │ No match found                         │    │
-│   │                           ▼                                        │    │
-│   │   ╔═══════════════════════════════════════════════════════════╗   │    │
-│   │   ║  LEVEL 2: SIMILARITY CONTEXT                               ║   │    │
-│   │   ║  ───────────────────────────                               ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ║  Threshold: < 85% but still relevant                       ║   │    │
-│   │   ║  Action: Add similar Q&As as CONTEXT to LLM prompt        ║   │    │
-│   │   ║  Benefit: LLM learns from past similar answers            ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ║  Example:                                                   ║   │    │
-│   │   ║  Q1: "Tell me about your React experience" (70% similar)  ║   │    │
-│   │   ║  Q2: "What frameworks do you know?" (65% similar)         ║   │    │
-│   │   ║  → Both added as context for consistency                  ║   │    │
-│   │   ║                                                            ║   │    │
-│   │   ╚═══════════════════════════════════════════════════════════╝   │    │
-│   │                                                                    │    │
-│   └───────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│   CACHE CONFIGURATION:                                                       │
-│   ┌─────────────────────────────────────────────────────────────────┐      │
-│   │ similarity_threshold: 0.85  (85% for exact match)               │      │
-│   │ max_cache_size:       1000  (Q&A pairs)                         │      │
-│   │ ttl_hours:            168   (7 days expiry)                     │      │
-│   │ eviction_policy:      LRU   (Least Recently Used)               │      │
-│   └─────────────────────────────────────────────────────────────────┘      │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Feature | Details |
+|---------|---------|
+| **Type** | Open-source embedding database |
+| **Storage** | Local file (./chroma_db/) |
+| **Index** | HNSW (Hierarchical Navigable Small World) |
+| **Search** | Cosine similarity, O(log n) |
+| **Returns** | Top 3 most similar chunks (retriever_k=3) |
 
-### 4. LLM (Qwen/Qwen2.5-7B-Instruct)
+### 4. Semantic Cache (0.95 Threshold)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    QWEN 2.5-7B-INSTRUCT MODEL                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   Provider:        HuggingFace Inference API                                │
-│   Parameters:      7 Billion                                                 │
-│   Context Window:  128K tokens                                               │
-│   Cost:            FREE (rate limited)                                      │
-│                                                                              │
-│   ┌────────────────────────────────────────────────────────────────────┐   │
-│   │                    API REQUEST FLOW                                 │   │
-│   │                                                                     │   │
-│   │   Your Backend                                                      │   │
-│   │       │                                                             │   │
-│   │       │ POST https://router.huggingface.co/v1/chat/completions     │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   ┌─────────────┐                                                  │   │
-│   │   │ HuggingFace │                                                  │   │
-│   │   │   Router    │ → Load balances across inference endpoints       │   │
-│   │   └─────────────┘                                                  │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   ┌─────────────┐                                                  │   │
-│   │   │ Qwen2.5-7B  │                                                  │   │
-│   │   │  Instruct   │ → Generates response                             │   │
-│   │   └─────────────┘                                                  │   │
-│   │       │                                                             │   │
-│   │       ▼                                                             │   │
-│   │   Response JSON                                                     │   │
-│   │                                                                     │   │
-│   └────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   SYSTEM PROMPT (Key Behavior):                                              │
-│   ┌─────────────────────────────────────────────────────────────────┐      │
-│   │ "You ARE the person whose portfolio this is.                     │      │
-│   │  Always respond in FIRST PERSON.                                 │      │
-│   │  Say 'I have...', 'My experience...' - NOT 'The developer has'  │      │
-│   │  ..."                                                            │      │
-│   └─────────────────────────────────────────────────────────────────┘      │
-│                                                                              │
-│   WHY THIS MODEL?                                                            │
-│   ✅ FREE to use                                                            │
-│   ✅ Fast (7B is 10x faster than 72B)                                       │
-│   ✅ Good instruction following                                             │
-│   ✅ Large context window (128K)                                            │
-│   ✅ OpenAI-compatible API format                                           │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Feature | Details |
+|---------|---------|
+| **Threshold** | 0.95 (raised from 0.85 to fix false positive matches) |
+| **Max Size** | 1000 Q&A pairs |
+| **TTL** | 7 days |
+| **Eviction** | LRU (Least Recently Used) |
+| **Cache Hit Speed** | ~50ms (vs ~3s for full pipeline) |
+
+### 5. Web Search — Tavily + DuckDuckGo
+
+| Feature | Tavily (Primary) | DuckDuckGo (Fallback) |
+|---------|-------------------|----------------------|
+| **API Key** | Required (free tier) | Not needed |
+| **Free Tier** | 1,000 searches/month | Unlimited (may rate limit) |
+| **Quality** | AI-optimized results | Standard results |
+| **Reliability** | High | Can be blocked in production |
+| **Max Results** | 3 | 3 |
+
+### 6. MCP Server
+
+| Feature | Details |
+|---------|---------|
+| **Protocol** | Model Context Protocol (by Anthropic) |
+| **Library** | FastMCP |
+| **Tools Exposed** | search_knowledge, search_web, get_github_stats |
+| **Clients** | Claude Desktop, Cursor IDE |
+| **Run** | python mcp_server.py |
 
 ---
 
 ## 🛠️ Technology Stack
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         COMPLETE TECHNOLOGY STACK                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                         FRONTEND                                     │  │
-│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │  │
-│   │   │   React     │  │    Vite     │  │   Axios     │                │  │
-│   │   │   18.x      │  │    6.x      │  │   HTTP      │                │  │
-│   │   │             │  │             │  │   Client    │                │  │
-│   │   │ UI Library  │  │ Build Tool  │  │ API Calls   │                │  │
-│   │   └─────────────┘  └─────────────┘  └─────────────┘                │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                         BACKEND                                      │  │
-│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │  │
-│   │   │  FastAPI    │  │   Uvicorn   │  │   Pydantic  │                │  │
-│   │   │   0.x       │  │   ASGI      │  │   Settings  │                │  │
-│   │   │             │  │   Server    │  │             │                │  │
-│   │   │ Web API     │  │ HTTP Server │  │ Validation  │                │  │
-│   │   └─────────────┘  └─────────────┘  └─────────────┘                │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                        AI / ML LAYER                                 │  │
-│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │  │
-│   │   │  LangChain  │  │   PyTorch   │  │ Sentence    │                │  │
-│   │   │   0.2.x     │  │   2.x       │  │ Transformers│                │  │
-│   │   │             │  │             │  │             │                │  │
-│   │   │ Orchestrator│  │ ML Backend  │  │ Embeddings  │                │  │
-│   │   └─────────────┘  └─────────────┘  └─────────────┘                │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                        DATA LAYER                                    │  │
-│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │  │
-│   │   │  ChromaDB   │  │  In-Memory  │  │    .txt     │                │  │
-│   │   │   Vector    │  │   Cache     │  │   Files     │                │  │
-│   │   │   Store     │  │             │  │             │                │  │
-│   │   │ Persistence │  │ Fast Access │  │ Raw Data    │                │  │
-│   │   └─────────────┘  └─────────────┘  └─────────────┘                │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                      EXTERNAL SERVICES                               │  │
-│   │   ┌─────────────────────────┐  ┌─────────────────────────┐         │  │
-│   │   │   HuggingFace API       │  │   DuckDuckGo Search     │         │  │
-│   │   │   (Qwen2.5-7B-Instruct) │  │   (Web Knowledge)       │         │  │
-│   │   │                         │  │                         │         │  │
-│   │   │   🆓 FREE               │  │   🆓 FREE, No API Key   │         │  │
-│   │   └─────────────────────────┘  └─────────────────────────┘         │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 18, Vite, Tailwind CSS | Chat UI with streaming |
+| **Backend** | FastAPI, Uvicorn, Pydantic | REST API + SSE streaming |
+| **LLM** | Groq Cloud (Llama 3.3 70B) | Tool calling + text generation |
+| **Embeddings** | all-MiniLM-L6-v2 (local) | Text to 384-dim vectors |
+| **Vector DB** | ChromaDB | Similarity search |
+| **Web Search** | Tavily + DuckDuckGo | External knowledge |
+| **MCP** | FastMCP | Tool exposure for AI clients |
+| **Caching** | In-memory (cosine similarity) | Fast repeat responses |
+| **Deployment** | HuggingFace Spaces + Vercel | Backend + Frontend hosting |
+| **Source Code** | GitHub | Version control |
+
+**Total monthly cost: $0.00** (all free tiers)
 
 ---
 
 ## 📊 Data Flow Examples
 
-### Example 1: Personal Question (Uses Vector Store)
-
+### Personal Question (Vector Search)
 ```
-USER: "What programming languages do you know?"
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                              │
-│   1. Cache Check          → No exact match (new question)                   │
-│                                                                              │
-│   2. Similar Q&As Found   → "What are your skills?" (68% similar)          │
-│                                                                              │
-│   3. Vector Search        → Returns chunks from skills.txt                  │
-│        Results:                                                              │
-│        • "JavaScript, TypeScript, Python..." (score: 0.94)                  │
-│        • "I specialize in React, Node.js..." (score: 0.87)                  │
-│                                                                              │
-│   4. Question Type        → PERSONAL (contains "you", "languages")          │
-│                                                                              │
-│   5. Web Search           → SKIPPED (personal question)                     │
-│                                                                              │
-│   6. LLM Generation       → Uses personal context + similar Q&As           │
-│                                                                              │
-│   RESPONSE: "I'm proficient in several programming languages:              │
-│              • JavaScript/TypeScript (primary for web development)          │
-│              • Python (for AI/ML and backend services)                      │
-│              • SQL (database management)                                    │
-│              ..."                                                            │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+"What programming languages do you know?"
+  -> Groq decides: search_personal_knowledge("programming languages")
+  -> ChromaDB returns: skills.txt chunks (0.94, 0.88, 0.82 similarity)
+  -> Groq generates: "I'm proficient in JavaScript, Python, TypeScript..."
 ```
 
-### Example 2: General Knowledge Question (Uses Web Search)
-
+### General Knowledge (Web Search)
 ```
-USER: "What is machine learning?"
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                              │
-│   1. Cache Check          → No exact match                                  │
-│                                                                              │
-│   2. Similar Q&As Found   → None relevant                                   │
-│                                                                              │
-│   3. Vector Search        → Returns chunks (low relevance)                  │
-│        Results:                                                              │
-│        • "I'm learning ML and AI..." (score: 0.45)                          │
-│                                                                              │
-│   4. Question Type        → NOT PERSONAL (no personal keywords)             │
-│                                                                              │
-│   5. Web Search           → DuckDuckGo search for "What is machine learning"│
-│        Results:                                                              │
-│        • "Machine learning is a subset of AI that enables..."              │
-│        • "ML algorithms learn from data to make predictions..."            │
-│                                                                              │
-│   6. LLM Generation       → Uses web search results as primary context     │
-│                                                                              │
-│   RESPONSE: "Machine learning is a branch of artificial intelligence       │
-│              that enables computers to learn from data without being        │
-│              explicitly programmed. It works by identifying patterns        │
-│              in data to make predictions or decisions..."                   │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+"What is machine learning?"
+  -> Groq decides: search_web("what is machine learning")
+  -> Tavily returns: 3 web results with summaries
+  -> Groq generates: "Machine learning is a branch of AI that..."
 ```
 
-### Example 3: Repeat Question (Cache Hit)
-
+### GitHub Stats (API)
 ```
-USER: "What projects have you built?"
-(Asked before: "What have you built?")
+"Show me your GitHub repos"
+  -> Groq decides: get_github_stats("iamabdullah1")
+  -> GitHub API returns: profile info + top 10 repos
+  -> Groq generates: "I have 15 public repos, including..."
+```
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                              │
-│   1. Cache Check          → EXACT MATCH FOUND! (92% similarity)            │
-│                                                                              │
-│        Question Embedding: [0.234, -0.567, ...]                             │
-│        Cached Embedding:   [0.228, -0.571, ...]                             │
-│        Similarity:         92% ≥ 85% threshold                              │
-│                                                                              │
-│   2-6. SKIPPED            → All steps bypassed                              │
-│                                                                              │
-│   RESPONSE: Cached answer returned in < 50ms ⚡                              │
-│                                                                              │
-│   "I've built several exciting projects! Here are my favorites..."         │
-│                                                                              │
-│   ⚡ LATENCY: ~50ms (vs ~2-3 seconds for full pipeline)                     │
-│   💰 COST: $0 (no LLM API call needed)                                      │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+### Cache Hit (Instant)
+```
+"What are your skills?" (repeated question)
+  -> Semantic Cache: similarity 0.97 >= 0.95 threshold -> HIT
+  -> Stream cached answer word-by-word (~350ms total)
+```
+
+### Fallback (Graceful Degradation)
+```
+"Tell me about your work" (tool calling fails)
+  -> Groq tool call -> ToolCallError (JSON parse failure)
+  -> Fallback: manual vector search + manual web search
+  -> Enriched prompt -> Groq (no tools, direct answer)
+  -> User still gets a helpful response
 ```
 
 ---
 
-## 📁 Project File Structure
+## 📁 File Structure
 
 ```
 personal-rag-app/
-│
-├── 📂 backend/
-│   ├── 📂 app/
-│   │   ├── __init__.py
-│   │   ├── main.py                    # FastAPI application entry point
-│   │   ├── config.py                  # Settings & environment variables
-│   │   │
-│   │   ├── 📂 routers/
-│   │   │   └── chat.py                # /api/chat, /api/health endpoints
-│   │   │
-│   │   ├── 📂 services/
-│   │   │   ├── rag_service.py         # 🧠 Main RAG orchestrator
-│   │   │   ├── vectorstore.py         # 📦 ChromaDB & embeddings
-│   │   │   ├── semantic_cache.py      # ⚡ Two-level caching system
-│   │   │   └── conversation_store.py  # 💬 Session history management
-│   │   │
-│   │   └── 📂 models/
-│   │       └── schemas.py             # Pydantic request/response models
-│   │
-│   ├── 📂 data/
-│   │   └── 📂 personal/               # 📄 YOUR PERSONAL DATA
-│   │       ├── about_me.txt
-│   │       ├── skills.txt
-│   │       ├── projects.txt
-│   │       ├── work_experience.txt
-│   │       ├── testimonials.txt
-│   │       └── contact.txt
-│   │
-│   ├── 📂 chroma_db/                  # 🗄️ Vector database storage
-│   │
-│   ├── ingest_data.py                 # 🔄 Data ingestion script
-│   ├── requirements.txt               # Python dependencies
-│   └── .env                           # Environment variables (API keys)
-│
-├── 📂 frontend/
-│   ├── 📂 src/
-│   │   ├── App.jsx                    # React chat component
-│   │   └── App.css                    # Styling
-│   │
-│   ├── vite.config.js                 # Vite + proxy configuration
-│   └── package.json                   # Node dependencies
-│
-└── PROJECT_ARCHITECTURE.md            # 📖 This file!
-```
+  Root Documentation:
+    FLOW_DIAGRAM.md              -- Extensive micro-step flow diagrams (14 sections)
+    PROJECT_ARCHITECTURE.md      -- This file (system architecture guide)
+    IMPLEMENTATION_PLAN.md       -- Implementation plan and completion status
+    DEPLOYMENT.md                -- Deployment guide (HF Spaces + Vercel)
+    README.md                    -- Project overview and quick start
+    Dockerfile                   -- Root Docker configuration
 
----
+  backend/
+    app/
+      main.py                    -- FastAPI app, lifespan manager, middleware (v2.0.0)
+      config.py                  -- Settings: Groq, Tavily, GitHub, RAG parameters
+      routers/
+        chat.py                  -- API endpoints: /health, /chat, /chat/stream
+      services/
+        rag_service.py           -- Agentic RAG orchestrator (Groq tool calling loop)
+        tools.py                 -- 3 shared tools (knowledge, web, GitHub)
+        vectorstore.py           -- ChromaDB + HuggingFace embeddings setup
+        semantic_cache.py        -- 0.95 threshold semantic cache (LRU, 7-day TTL)
+        conversation_store.py    -- In-memory session history (10 msg, 24hr TTL)
+      models/
+        schemas.py               -- Pydantic request/response models
+    data/personal/               -- 9 personal text documents
+    chroma_db/                   -- Pre-ingested vector database
+    static/                      -- Built frontend files (served by FastAPI)
+    mcp_server.py                -- MCP server for Claude Desktop / Cursor
+    ingest_data.py               -- Data ingestion script
+    requirements.txt             -- Python dependencies
+    Dockerfile                   -- Backend Docker configuration
+    .env                         -- API keys (gitignored)
 
-## 🎓 Key Concepts Summary
-
-| Concept | What It Does | Why It Matters |
-|---------|--------------|----------------|
-| **Embedding** | Converts text to 384-dim vectors | Enables semantic search (meaning, not keywords) |
-| **Vector Store** | Stores and indexes embeddings | Fast similarity search O(log n) |
-| **Chunking** | Splits documents into 1000-char pieces | Better retrieval precision |
-| **Retriever** | Finds top-k relevant chunks | Provides context to LLM |
-| **Semantic Cache** | Caches Q&A pairs by meaning | 10-50x faster repeat questions |
-| **System Prompt** | Instructs LLM behavior | Ensures first-person responses |
-| **Context Assembly** | Combines all information sources | Gives LLM complete picture |
-| **RAG** | Retrieval + Generation | Accurate answers from YOUR data |
-
----
-
-## 🚀 Quick Commands Reference
-
-```bash
-# Start Backend
-cd backend
-source venv/bin/activate
-uvicorn app.main:app --reload --port 8000
-
-# Start Frontend
-cd frontend
-npm run dev
-
-# Re-ingest Data (after updating personal files)
-cd backend
-python ingest_data.py
-
-# Check API Health
-curl http://localhost:8000/api/health
-
-# Test Chat Endpoint
-curl -X POST http://localhost:8000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What are your skills?"}'
+  frontend/
+    src/
+      App.jsx                    -- React chat component (SSE, tools, timeout, dark mode)
+      main.jsx                   -- React entry point
+      App.css                    -- Component styles
+      index.css                  -- Global styles (Tailwind)
+    vite.config.js               -- Dev proxy to localhost:8000
+    vercel.json                  -- Production proxy to HF Space
+    tailwind.config.js           -- Tailwind CSS configuration
+    package.json                 -- Node.js dependencies
+    index.html                   -- HTML entry point
 ```
 
 ---
 
 ## 📈 Performance Characteristics
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         RESPONSE TIME BREAKDOWN                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   Cache Hit (Exact Match):                                                  │
-│   ├── Embedding Generation:     ~20ms                                       │
-│   ├── Cache Lookup:             ~5ms                                        │
-│   └── TOTAL:                    ~50ms ⚡                                    │
-│                                                                              │
-│   Cache Miss (Full Pipeline):                                               │
-│   ├── Embedding Generation:     ~20ms                                       │
-│   ├── Cache Check:              ~10ms                                       │
-│   ├── Vector Search:            ~50ms                                       │
-│   ├── Web Search (if needed):   ~500ms                                      │
-│   ├── LLM API Call:             ~2000ms (varies)                           │
-│   ├── Response Processing:      ~20ms                                       │
-│   └── TOTAL:                    ~2-3 seconds                                │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Scenario | Response Time | Groq API Calls | Tools Used | Cost |
+|----------|--------------|----------------|------------|------|
+| Cache Hit | ~350ms | 0 | 0 | $0 |
+| Single Tool (personal) | ~2-3s | 2 | 1 | $0 |
+| Single Tool (web) | ~2-3s | 2 | 1 | $0 |
+| Multi-Tool | ~3-4s | 2-3 | 2+ | $0 |
+| Fallback Mode | ~6-8s | 3-4 | manual | $0 |
+
+### Rate Limits
+
+| Service | Free Tier Limit | Daily/Monthly |
+|---------|-----------------|---------------|
+| Groq | 14,400 requests | Per day |
+| Tavily | 1,000 searches | Per month |
+| GitHub API | 60 requests | Per hour (unauthenticated) |
+| Backend Rate Limiter | 30 requests | Per minute per IP |
 
 ---
 
-**Created for Abdullah Akram's Personal RAG Portfolio Application** 🚀
+## 🔐 Environment Variables
 
-*Last Updated: January 2026*
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| GROQ_API_KEY | Groq Cloud LLM access | Yes |
+| TAVILY_API_KEY | Tavily web search | Yes |
+| GROQ_MODEL | LLM model name | No (default: llama-3.3-70b-versatile) |
+| GITHUB_USERNAME | GitHub stats tool | No (default: iamabdullah1) |
+
+---
+
+**Created for Abdullah Akram's Personal RAG Portfolio Application**
+
+*Architecture Document v2.0 — Agentic Mode*
