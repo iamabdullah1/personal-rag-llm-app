@@ -8,6 +8,7 @@ import logging
 import time
 from collections import defaultdict
 import asyncio
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,13 +46,27 @@ class RateLimiter:
 
 rate_limiter = RateLimiter(requests_per_minute=30)
 
+# ============================================
+# LIFESPAN (replaces deprecated on_event)
+# ============================================
+@asynccontextmanager
+async def lifespan(app):
+    """Startup and shutdown logic."""
+    logger.info("🚀 Starting Personal RAG API (Agentic Mode)...")
+    logger.info(f"📚 Debug mode: {settings.debug}")
+    logger.info(f"🤖 LLM: Groq ({settings.groq_model})")
+    logger.info("⚡ Features: Tool Calling, Semantic Cache, Web Search, GitHub Stats")
+    yield
+    logger.info("👋 Shutting down Personal RAG API...")
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
-    description="AI-powered personal assistant API using RAG",
-    version="1.0.0",
+    description="AI-powered personal assistant API using Agentic RAG with tool calling",
+    version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # ============================================
@@ -102,23 +117,11 @@ async def add_timing_header(request: Request, call_next):
 # Include routers
 app.include_router(chat.router)
 
-# Serve static files (Frontend)
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("🚀 Starting Personal RAG API...")
-    logger.info(f"📚 Debug mode: {settings.debug}")
-    logger.info("⚡ Optimizations: GZip, Rate Limiting, Connection Pooling")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("👋 Shutting down Personal RAG API...")
-    # Close HTTP client pool
-    from app.services.rag_service import rag_service
-    await rag_service.close()
+# Serve static files (Frontend) — MUST be after routers
+import os
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 class SemanticCache:
     def __init__(
         self,
-        similarity_threshold: float = 0.85,  # 85% similarity for exact match
+        similarity_threshold: float = 0.95,  # 95% similarity for exact match (prevents wrong cache hits)
         max_cache_size: int = 1000,
         ttl_hours: int = 168  # 7 days
     ):
@@ -135,7 +135,8 @@ class SemanticCache:
             results = similarities[:top_k]
             
             if results:
-                print(f"🔍 Found {len(results)} similar cached Q&As (similarities: {[f'{r['similarity']:.2%}' for r in results]})")
+                sims = [f"{r['similarity']:.2%}" for r in results]
+                print(f"🔍 Found {len(results)} similar cached Q&As (similarities: {sims})")
             
             return results
     
@@ -196,7 +197,7 @@ class SemanticCache:
 
 # Global singleton instance
 semantic_cache = SemanticCache(
-    similarity_threshold=0.85,
+    similarity_threshold=0.95,
     max_cache_size=1000,
     ttl_hours=168  # 7 days
 )

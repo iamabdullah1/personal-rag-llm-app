@@ -13,11 +13,13 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState(null)
   const [streamingMessage, setStreamingMessage] = useState('')
+  const [toolStatus, setToolStatus] = useState('')
   const [isRestoring, setIsRestoring] = useState(true)
   const [theme, setTheme] = useState('dark') // Default to dark
   const [keyboardBottom, setKeyboardBottom] = useState(0)
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
+  const timeoutRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -95,7 +97,19 @@ function App() {
   const sendMessageStreaming = useCallback(async (userMessage) => {
     setLoading(true)
     setStreamingMessage('')
+    setToolStatus('')
     abortControllerRef.current = new AbortController()
+
+    // 45-second timeout to prevent infinite loading
+    timeoutRef.current = setTimeout(() => {
+      abortControllerRef.current?.abort()
+      setMessages(prev => [...prev, { role: 'error', content: 'Request timed out. Please try again.' }])
+      setStreamingMessage('')
+      setToolStatus('')
+      setLoading(false)
+    }, 45000)
+
+    let receivedDone = false
 
     try {
       const response = await fetch(`${API_BASE}/api/chat/stream`, {
@@ -125,27 +139,52 @@ function App() {
               if (data.token) {
                 fullMessage += data.token
                 setStreamingMessage(fullMessage)
+                setToolStatus('') // Clear tool status when tokens start
+              }
+              if (data.tool_call) {
+                const toolNames = {
+                  'search_personal_knowledge': '🔍 Searching knowledge base...',
+                  'search_web': '🌐 Searching the web...',
+                  'get_github_stats': '🐙 Fetching GitHub stats...',
+                  'fallback_search': '🔍 Gathering context...'
+                }
+                setToolStatus(toolNames[data.tool_call] || `🔧 Using ${data.tool_call}...`)
               }
               if (data.done) {
-                setMessages(prev => [...prev, { role: 'assistant', content: fullMessage }])
+                receivedDone = true
+                if (fullMessage.trim()) {
+                  setMessages(prev => [...prev, { role: 'assistant', content: fullMessage.trim() }])
+                }
                 setStreamingMessage('')
+                setToolStatus('')
                 if (data.session_id) setConversationId(data.session_id)
               }
               if (data.error) {
+                receivedDone = true
                 setMessages(prev => [...prev, { role: 'error', content: data.error }])
                 setStreamingMessage('')
-                return // Stop processing
+                setToolStatus('')
               }
-            } catch (e) { /* ignore */ }
+            } catch (e) { /* ignore JSON parse errors for partial chunks */ }
           }
         }
       }
+
+      // GUARD: If stream ended without a done/error event, finalize the message
+      if (!receivedDone && fullMessage.trim()) {
+        setMessages(prev => [...prev, { role: 'assistant', content: fullMessage.trim() }])
+        setStreamingMessage('')
+        setToolStatus('')
+      }
+
     } catch (error) {
       if (error.name !== 'AbortError') {
-        setMessages(prev => [...prev, { role: 'error', content: 'Sorry, something went wrong.' }])
+        setMessages(prev => [...prev, { role: 'error', content: 'Sorry, something went wrong. Please try again.' }])
         setStreamingMessage('')
+        setToolStatus('')
       }
     } finally {
+      clearTimeout(timeoutRef.current)
       setLoading(false)
       abortControllerRef.current = null
     }
@@ -162,6 +201,7 @@ function App() {
 
   const clearChat = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort()
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
     if (conversationId) {
       try { await fetch(`${API_BASE}/api/conversation/${conversationId}`, { method: 'DELETE' }) } catch (e) { }
     }
@@ -169,6 +209,7 @@ function App() {
     setMessages([])
     setConversationId(null)
     setStreamingMessage('')
+    setToolStatus('')
     setLoading(false)
   }
 
@@ -253,10 +294,17 @@ function App() {
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
               <Bot size={16} className="text-white" />
             </div>
-            <div className="flex gap-1 items-center bg-white dark:bg-[#2f2f2f] px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700">
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            <div className="flex flex-col gap-1">
+              {toolStatus && (
+                <div className="text-sm text-blue-400 animate-pulse px-4 py-1">
+                  {toolStatus}
+                </div>
+              )}
+              <div className="flex gap-1 items-center bg-white dark:bg-[#2f2f2f] px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700">
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+              </div>
             </div>
           </div>
         )}

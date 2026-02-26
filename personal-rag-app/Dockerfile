@@ -17,7 +17,7 @@ COPY backend/ .
 # Create data directory
 RUN mkdir -p data/chroma_db
 
-# Run data ingestion
+# Run data ingestion at build time
 RUN python ingest_data.py
 
 # Expose port (HF Spaces uses port 7860)

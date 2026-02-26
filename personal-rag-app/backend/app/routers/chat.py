@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from typing import Optional
 import json
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -87,50 +90,30 @@ async def chat(request: ChatRequest):
 @router.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """
-    Stream chat response for real-time typing effect.
-    Uses Server-Sent Events (SSE) for streaming.
+    Stream chat response using Server-Sent Events (SSE).
+    Uses agentic tool calling: LLM decides which tools to use.
     """
     async def generate():
         try:
-            # First, get context in parallel (fast operations)
-            result = await rag_service.get_answer_streaming(
+            async for event in rag_service.stream_answer(
                 question=request.message,
-                session_id=request.session_id
-            )
-            
-            # If cache hit, stream the cached answer
-            if result.get("cache_hit"):
-                answer = result["answer"]
-                words = answer.split()
-                for word in words:
-                    yield f"data: {json.dumps({'token': word + ' '})}\n\n"
-                    await asyncio.sleep(0.02)  # Small delay for typing effect
-                
-                yield f"data: {json.dumps({'done': True, 'sources': result['sources'], 'session_id': result['session_id'], 'cache_hit': True})}\n\n"
-                return
-            
-            # Stream from LLM
-            async for chunk in rag_service.stream_llm_response(
-                question=request.message,
-                context=result.get("context", {}),
-                session_id=result.get("session_id")
+                session_id=request.session_id,
+                conversation_history=request.conversation_history
             ):
-                if chunk.get("token"):
-                    yield f"data: {json.dumps({'token': chunk['token']})}\n\n"
-                elif chunk.get("done"):
-                    yield f"data: {json.dumps({'done': True, 'sources': chunk.get('sources', []), 'session_id': chunk.get('session_id')})}\n\n"
-                elif chunk.get("error"):
-                    yield f"data: {json.dumps({'error': chunk['error']})}\n\n"
-        
+                yield f"data: {json.dumps(event)}\n\n"
+
         except Exception as e:
+            logger.error(f"Stream error: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
+            yield f"data: {json.dumps({'done': True, 'sources': [], 'session_id': request.session_id or ''})}\n\n"
+
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
+            "X-Accel-Buffering": "no",
+            "Transfer-Encoding": "chunked"
         }
     )
