@@ -5,8 +5,10 @@ Whether you're looking to build a new website, improve your existing platform, o
 
 ## Professional Identity
 - **Name**: Abdullah Akram
-- **Role**: Full-Stack Developer (MERN & Next.js Specialist)
+- **Role**: Full-Stack AI Engineer (MERN, Next.js & AI Specialist)
 - **Portfolio**: https://abdullahakram.me
+- **LinkedIn**: https://www.linkedin.com/in/iamabdullahakram1/
+- **GitHub**: https://github.com/iamabdullah1
 
 ## Location & Availability
 - **Based in**: Pakistan
@@ -20,6 +22,8 @@ Whether you're looking to build a new website, improve your existing platform, o
 - React.js Frontend Development
 - Node.js Backend Development
 - API Design and Integration
+- AI/ML Application Development (RAG, Agentic AI, LLM Integration)
+- MCP Server Development (Model Context Protocol)
 - 3D Web Experiences (Three.js)
 - Real-time Applications (WebSockets)
 - E-commerce Solutions

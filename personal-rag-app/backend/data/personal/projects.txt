@@ -1,6 +1,43 @@
 # Abdullah Akram - Portfolio Projects
 
-## Project 1: Education Consultancy Website
+## Project 1: Personal AI Chatbot - Agentic RAG with MCP Server (This Project!)
+
+### Description
+An advanced Agentic RAG (Retrieval-Augmented Generation) chatbot that serves as a personal AI assistant. Unlike traditional chatbots, this system uses autonomous AI tool calling where the LLM (Groq Llama 3.3 70B) decides which tools to use, executes them, reasons over results, and generates comprehensive answers in real-time. Also includes an MCP (Model Context Protocol) server for integration with Claude Desktop and Cursor IDE.
+
+### Technologies Used
+- FastAPI (Python 3.12)
+- Groq Cloud (Llama 3.3 70B) for LLM with native tool calling
+- ChromaDB with HNSW index for vector search
+- sentence-transformers/all-MiniLM-L6-v2 for local embeddings
+- Tavily + DuckDuckGo for web search
+- FastMCP for MCP server
+- React.js 18 with Vite and Tailwind CSS
+- SSE (Server-Sent Events) for real-time streaming
+
+### Status
+Live and deployed - Backend on HuggingFace Spaces, Frontend on Vercel
+
+### Key Features
+- **Agentic Tool Calling**: LLM autonomously decides which of 3 tools to use (knowledge search, web search, GitHub stats)
+- **MCP Server**: Exposes all tools via Model Context Protocol for Claude Desktop and Cursor IDE
+- **Multi-Round Reasoning**: AI can call tools up to 3 rounds before generating final answer
+- **Intelligent Fallback**: ToolCallError triggers graceful fallback (manual search + direct LLM call)
+- **Real-time SSE Streaming**: Word-by-word responses with tool status indicators
+- **Semantic Cache**: 0.95 threshold for instant repeated answers (~350ms)
+- **Conversation Memory**: 6-message context for natural follow-ups
+- **$0/month**: All services on free tiers
+
+### What I Learned / Built
+- Designed and built an MCP server from scratch using FastMCP
+- Implemented agentic tool-calling loops with Groq's native function calling
+- Built resilient fallback pipelines for production reliability
+- Integrated multiple AI services (Groq, Tavily, ChromaDB, sentence-transformers)
+- Deployed with Docker on HuggingFace Spaces
+
+---
+
+## Project 2: Education Consultancy Website
 
 ### Description
 A comprehensive education consultancy platform that provides guidance for students aspiring to study abroad. It offers end-to-end consultancy services for university admissions, visa processes, and personalized consultant meetings.

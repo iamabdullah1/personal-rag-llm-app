@@ -5,15 +5,22 @@ I specialize in a variety of languages, frameworks, and AI tools that allow me t
 
 ## AI & Machine Learning
 - **RAG (Retrieval Augmented Generation)**: Building intelligent AI systems that retrieve and generate contextual responses
+- **Agentic RAG**: Building autonomous AI systems with LLM-driven tool calling loops where the AI decides which tools to use
+- **MCP (Model Context Protocol)**: Building MCP servers using FastMCP to expose tools for AI clients like Claude Desktop and Cursor IDE
+- **LLM Tool Calling**: Implementing native function-calling with Groq, OpenAI-compatible tool definitions, multi-round tool execution
+- **Groq Cloud Integration**: Using Groq's LPU hardware for ultra-fast LLM inference with Llama 3.3 70B model
 - **LangChain**: Orchestrating LLM applications, chains, and agents
-- **Agentic AI**: Developing autonomous AI agents that can reason and take actions
+- **Agentic AI**: Developing autonomous AI agents that can reason, use tools, and take actions with intelligent fallback mechanisms
 - **Vector Databases**: ChromaDB, Pinecone for semantic search and embeddings storage
 - **Embeddings**: Sentence Transformers, HuggingFace embeddings for semantic understanding
-- **LLM Integration**: HuggingFace Inference API, OpenAI-compatible APIs
+- **LLM Integration**: Groq Cloud, HuggingFace Inference API, OpenAI-compatible APIs
+- **Tavily AI Search**: AI-optimized web search integration with fallback to DuckDuckGo
 - **Semantic Search**: Building intelligent search systems using vector similarity
-- **Semantic Caching**: Optimizing AI responses with similarity-based caching
+- **Semantic Caching**: Optimizing AI responses with similarity-based caching (cosine similarity thresholds)
+- **SSE Streaming**: Server-Sent Events for real-time token-by-token LLM response streaming
 - **Prompt Engineering**: Crafting effective system prompts for LLMs
 - **PyTorch**: Machine learning framework for AI model execution
+- **Error-Resilient AI**: Building fallback pipelines so users always get answers even when tool calling fails
 
 ## Frontend Technologies
 - **React.js**: Building interactive user interfaces with modern React patterns

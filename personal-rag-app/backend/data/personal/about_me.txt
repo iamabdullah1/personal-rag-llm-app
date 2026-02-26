@@ -3,6 +3,12 @@
 ## Introduction
 I’m a Full-Stack AI Engineer who builds complete AI-powered software solutions to solve real business problems. I focus on understanding challenges at their core, identifying where intelligent systems can create the most impact, and turning those ideas into reliable, scalable products. By combining strong software engineering with practical AI, I design end-to-end solutions that automate workflows, manage knowledge, and improve decision-making—delivering systems that are built for real-world use and long-term value.
  I specialize in building end-to-end AI solutions that automate workflows and solve real-world business problems.
+
+## Online Presence
+- **Portfolio**: https://abdullahakram.me
+- **LinkedIn**: https://www.linkedin.com/in/iamabdullahakram1/
+- **GitHub**: https://github.com/iamabdullah1
+
 ## Location & Availability
 Based in Pakistan, available for remote projects worldwide. Flexible with time zones and focused on smooth collaboration.
 

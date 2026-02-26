@@ -2,10 +2,18 @@
 
 ## Current Position
 
-### Full-Stack Developer (Next.js & MERN) | 2025 - Present
+### Full-Stack AI Engineer (Next.js, MERN & AI) | 2025 - Present
 **Freelance & Personal Projects**
 
 - Specialized in building production-ready web applications with Next.js, MERN stack, and Tailwind CSS
+- **Built an Agentic RAG (Retrieval-Augmented Generation) chatbot** — a personal AI assistant that uses Groq's Llama 3.3 70B model with autonomous tool calling to answer questions using personal knowledge base, web search, and GitHub stats
+- **Developed an MCP (Model Context Protocol) server** using FastMCP that exposes AI tools (knowledge search, web search, GitHub stats) for external AI clients like Claude Desktop and Cursor IDE — this was part of my Personal RAG Chatbot project
+- **Implemented agentic tool-calling architecture** where the LLM autonomously decides which tools to call, executes them, reasons over results, and can loop up to 3 rounds before generating a final answer
+- **Built intelligent fallback pipelines** — when LLM tool calling fails (ToolCallError), the system gracefully falls back to manual vector search + web search + direct LLM call, ensuring users always get an answer
+- **Integrated Groq Cloud** for ultra-fast LLM inference (~200 tokens/sec) with native tool calling support and SSE streaming
+- **Implemented Tavily AI search** as primary web search with DuckDuckGo fallback for reliable external knowledge retrieval
+- **Built real-time SSE streaming** with tool status indicators showing users which AI tool is being used (searching knowledge base, searching web, fetching GitHub stats)
+- **Designed semantic caching system** with 0.95 cosine similarity threshold, LRU eviction, and 7-day TTL for instant repeated responses
 - Created interactive portfolios and client projects featuring 3D models with Three.js, Sketchfab integration, and GSAP animations
 - Developed secure, full-stack applications with API routes, server-side rendering (SSR), dynamic routing, and authentication in Next.js
 - Implemented real-time features like chat apps and live dashboards using WebSockets and REST API integrations

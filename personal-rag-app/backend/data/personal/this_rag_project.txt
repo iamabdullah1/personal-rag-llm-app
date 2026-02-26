@@ -1,160 +1,175 @@
-# About This Project - My Personal AI Chatbot
+# About This Project - My Personal AI Chatbot (v2.0 Agentic RAG)
 
 ## What is This Project?
 
 This project is my personal AI chatbot - a smart conversational assistant that knows everything about me (Abdullah Akram). You can ask me questions about my skills, projects, experience, education, or anything else, and I'll give you accurate, personalized answers based on my actual information.
 
-This is NOT a generic chatbot. This is a RAG (Retrieval-Augmented Generation) system that uses my personal data to provide intelligent, contextual responses. When you ask a question, it searches through my portfolio, resume, and personal information to give you the most relevant answer.
+This is NOT a generic chatbot. This is an **Agentic RAG (Retrieval-Augmented Generation)** system that uses autonomous AI tool calling to decide how to answer your question. The AI (Groq Llama 3.3 70B) acts as an intelligent agent that autonomously decides which tools to use, executes them, reasons over the results, and generates comprehensive answers - all streamed in real-time.
+
+## What is Agentic RAG?
+
+Agentic RAG is an advanced AI architecture where the LLM (Large Language Model) doesn't just retrieve and generate - it **autonomously decides** what actions to take:
+
+1. The AI receives your question
+2. It decides which tools to call (personal knowledge search, web search, or GitHub stats)
+3. It executes those tools and receives results
+4. It reasons over the results - and may call MORE tools if needed (up to 3 rounds)
+5. It generates a final answer with all the gathered context
+6. If anything fails, it gracefully falls back so you always get a helpful answer
+
+This is different from traditional RAG where every question goes through the same retrieve-then-generate pipeline. Agentic RAG is smarter and more flexible.
+
+## MCP Server (Model Context Protocol)
+
+This project also includes an **MCP (Model Context Protocol) server** - a protocol designed by Anthropic for exposing AI tools to external clients. I built an MCP server using FastMCP that exposes all three of the chatbot's tools:
+
+1. **search_knowledge** - Search my personal knowledge base (ChromaDB vector search)
+2. **search_web** - Search the internet (Tavily AI search with DuckDuckGo fallback)
+3. **get_github_stats** - Fetch live GitHub profile and repository data
+
+This MCP server can be used with:
+- **Claude Desktop** - Anthropic's AI assistant can use my tools directly
+- **Cursor IDE** - The AI coding editor can access my knowledge base and tools
+
+Building the MCP server demonstrates my ability to work with cutting-edge AI protocols and integrate AI tools across different platforms. The MCP server shares the same tool implementations as the main chatbot, ensuring consistency.
 
 ## Key Features of This Chatbot Project
 
-- **Personal Knowledge Base**: Trained on my actual skills, projects, work experience, and background
-- **Smart Question Understanding**: Uses AI to understand what you're really asking
-- **Real-time Responses**: Combines my personal data with web search for comprehensive answers
-- **Conversation Memory**: Remembers our conversation for more natural interactions
-- **Built by Me**: This entire chatbot system was developed by Abdullah Akram using modern AI technologies
+- **Agentic Tool Calling**: The AI autonomously decides which tools to use - it's not hardcoded
+- **3 AI Tools**: Personal knowledge search (ChromaDB), web search (Tavily + DuckDuckGo), GitHub stats (GitHub API)
+- **MCP Server**: Exposes all tools via Model Context Protocol for Claude Desktop and Cursor IDE
+- **Real-time SSE Streaming**: Responses stream word-by-word with tool status indicators showing which tool is being used
+- **Semantic Cache**: 0.95 cosine similarity threshold for instant repeated answers (~350ms vs ~3 seconds)
+- **Conversation Memory**: Remembers the last 6 messages for natural follow-up conversations
+- **Intelligent Fallback**: If tool calling fails (ToolCallError), the system gracefully falls back to manual search + direct LLM call - users always get an answer
+- **Groq LLM**: Uses Groq Cloud's Llama 3.3 70B model with ultra-fast inference (~200 tokens/sec) via their custom LPU hardware
+- **Completely Free**: All services used are on free tiers ($0/month total)
+- **Built Entirely by Me**: This entire system was designed and developed by Abdullah Akram
 
 ## Technologies Used in This Project
 
 ### Frontend
-- React.js with modern hooks and state management
-- Responsive design that works on mobile and desktop
-- Real-time streaming responses
-- Clean, professional UI with dark/light theme support
+- React.js 18 with modern hooks and state management
+- Vite for fast builds and hot module replacement
+- Tailwind CSS for responsive styling
+- react-markdown with remark-gfm for formatted AI responses
+- SSE (Server-Sent Events) for real-time streaming
+- AbortController with 45-second timeout to prevent infinite loading
+- Dark/Light mode theme toggle
+- Tool status indicators (showing which AI tool is active)
+- Mobile responsive design
 
 ### Backend
-- FastAPI (Python) for high-performance API
-- ChromaDB for vector storage of personal information
-- HuggingFace models for AI processing
-- Semantic caching for faster responses
+- FastAPI (Python 3.12) with async support and lifespan context manager
+- Groq Cloud SDK (AsyncGroq) for LLM inference with native tool calling
+- ChromaDB for vector storage and semantic search (HNSW index)
+- sentence-transformers/all-MiniLM-L6-v2 for local text embeddings (384 dimensions)
+- Tavily Python SDK for AI-optimized web search
+- DuckDuckGo Search as web search fallback
+- httpx for async GitHub API calls
+- FastMCP for MCP (Model Context Protocol) server
+- Pydantic for data validation and settings management
+- Uvicorn ASGI server
 
-### AI/ML Components
-- Sentence transformers for text embeddings
-- Qwen2.5-7B-Instruct model for response generation
-- DuckDuckGo integration for web search
-- Custom semantic caching system
+### AI/ML Architecture
+- **LLM**: Groq Cloud - Llama 3.3 70B Versatile (FREE, 14,400 requests/day)
+- **Embeddings**: sentence-transformers/all-MiniLM-L6-v2 (runs locally, no API needed)
+- **Vector DB**: ChromaDB with HNSW index (local file storage)
+- **Web Search**: Tavily (primary, FREE 1,000/month) + DuckDuckGo (fallback)
+- **Tool Calling**: Native OpenAI-compatible function calling via Groq
+- **MCP Server**: FastMCP exposing 3 tools for Claude Desktop and Cursor IDE
+- **Caching**: In-memory semantic cache with cosine similarity matching
+- **Streaming**: Server-Sent Events (SSE) for real-time token streaming
+
+### Middleware & Security
+- CORS middleware (allows all origins)
+- Rate limiter (30 requests per minute per IP)
+- GZip compression for responses
+- Timing middleware (X-Process-Time header)
+
+## How This Chatbot Works (Technical Overview)
+
+### Step 1: Data Ingestion (One-Time Setup)
+- My personal information is stored in 9 text files (about me, skills, projects, education, work experience, contact, hobbies, testimonials, and this project description)
+- These documents are split into smaller chunks (1000 characters with 200 overlap) using RecursiveCharacterTextSplitter
+- Each chunk is converted into a 384-dimensional vector using sentence-transformers/all-MiniLM-L6-v2 (runs locally on CPU)
+- These vectors are stored in ChromaDB (a local vector database with HNSW index)
+
+### Step 2: When You Ask a Question (Agentic Pipeline)
+1. Your question arrives at the FastAPI backend via POST /api/chat/stream
+2. The semantic cache checks if a very similar question was asked before (0.95 cosine similarity threshold)
+3. If cache HIT: the cached answer is streamed word-by-word instantly (~350ms)
+4. If cache MISS: the agentic tool-calling loop begins:
+   a. Your question + system prompt + conversation history (last 6 messages) are sent to Groq's Llama 3.3 70B model along with 3 tool definitions
+   b. The LLM autonomously decides: should I call a tool? If yes, which one?
+   c. If the LLM calls a tool (e.g., search_personal_knowledge), the tool is executed and results are sent back
+   d. The LLM may call more tools or decide it has enough information (up to 3 rounds)
+   e. When ready, the LLM generates the final answer, which is streamed token-by-token via SSE
+5. The frontend displays tool status indicators showing which tool is being used
+6. The answer is cached for future similar questions and stored in conversation memory
+
+### Step 3: Intelligent Fallback
+- If tool calling fails at any point (JSON parsing error, tool execution error), a ToolCallError is raised
+- The fallback pipeline activates: manually searches ChromaDB + manually searches Tavily/DuckDuckGo
+- An enriched prompt with all gathered context is sent to Groq WITHOUT tools
+- The user always gets a helpful answer, even when the agentic pipeline has issues
+
+### Step 4: Caching and Memory
+- Semantic cache stores Q&A pairs with 0.95 similarity threshold, 7-day TTL, max 1000 entries, LRU eviction
+- Conversation store keeps last 10 messages per session with 24-hour TTL
+- Last 6 messages are sent to the LLM for contextual follow-up responses
+
+## MCP Server Details
+
+The MCP (Model Context Protocol) server is a separate component that exposes the chatbot's tools for use by external AI clients:
+
+### What is MCP?
+MCP is an open protocol designed by Anthropic that allows AI applications to connect to external tools and data sources. Think of it as a universal adapter for AI tools.
+
+### My MCP Implementation
+- Built using **FastMCP** library
+- Shares the exact same tool functions as the main chatbot (tools.py)
+- Exposes 3 tools:
+  - **search_knowledge(query)**: Search my personal knowledge base using vector similarity
+  - **search_web(query)**: Search the internet using Tavily (with DuckDuckGo fallback)
+  - **get_github_stats(username)**: Fetch GitHub profile and repository information
+- Can be connected to Claude Desktop via claude_desktop_config.json
+- Can be used with Cursor IDE for AI-powered development with access to my knowledge base
+
+### Why I Built the MCP Server
+- Demonstrates understanding of cutting-edge AI protocols
+- Shows ability to build interoperable AI tools
+- Allows my personal knowledge base to be accessed from multiple AI platforms
+- Makes the chatbot's tools reusable beyond just the web interface
 
 ## Why I Built This Project
 
 I created this chatbot to showcase my AI engineering skills and provide an interactive way for people to learn about my work. Instead of a static portfolio website, visitors can have a conversation and ask specific questions about my experience, projects, or background.
 
 This demonstrates my ability to:
-- Build end-to-end AI applications
-- Integrate multiple AI services and APIs
-- Create user-friendly interfaces for complex technology
+- Build end-to-end agentic AI applications with autonomous tool calling
+- Implement MCP servers for cross-platform AI tool integration
+- Integrate Groq Cloud for ultra-fast LLM inference with tool calling
+- Design resilient systems with intelligent fallback mechanisms
+- Build real-time streaming interfaces with SSE
+- Work with vector databases and semantic search
+- Create production-ready applications deployed on cloud platforms
 - Solve real-world problems with intelligent automation
 
-## How This Chatbot Works (Technical Overview)
-- My personal information is stored in text files (about me, skills, projects, education, etc.)
-- These documents are split into smaller chunks (1000 characters with 200 overlap)
-- Each chunk is converted into a 384-dimensional vector using sentence-transformers/all-MiniLM-L6-v2
-- These vectors are stored in ChromaDB (a local vector database)
+## Performance
 
-#### Step 2: When You Ask a Question
-1. Your question is converted into a vector (same embedding model)
-2. ChromaDB finds the most similar document chunks (semantic search)
-3. The system checks if it's a personal question or general knowledge question
-4. For personal questions: uses my stored data
-5. For general questions: searches DuckDuckGo for web information
-6. All context is combined and sent to the LLM (Qwen2.5-7B-Instruct)
-7. The LLM generates a first-person response as if it were me
+- Cache hit (semantic match): ~350ms response time
+- Single tool call: ~2-3 seconds
+- Multi-tool call (2+ tools): ~3-4 seconds
+- Fallback pipeline: ~6-8 seconds
+- Full pipeline cost: $0 (all free tier services)
 
-#### Step 3: Intelligent Caching
-- The system has a two-level semantic cache
-- Level 1: If your question is 85%+ similar to a previous question, it returns the cached answer instantly
-- Level 2: Similar past Q&As are used as context for better consistency
+## Deployment
 
-## Technology Stack
-
-### Frontend
-- **React.js**: User interface
-- **Vite**: Fast build tool
-- **Axios**: API communication
-
-### Backend
-- **FastAPI**: Python web framework (high performance, async)
-- **Python 3.12**: Core programming language
-- **Uvicorn**: ASGI server
-
-### AI/ML Components
-- **LangChain**: Orchestrates the RAG pipeline
-- **sentence-transformers/all-MiniLM-L6-v2**: Embedding model (runs locally with PyTorch)
-- **ChromaDB**: Vector database for storing and searching embeddings
-- **HuggingFace Inference API**: LLM provider (Qwen2.5-7B-Instruct model)
-- **Semantic Cache**: Custom-built similarity-based caching system
-
-### External Services
-- **HuggingFace**: Free LLM API for text generation
-- **DuckDuckGo**: Free web search for general knowledge questions
-
-## Key Features
-
-### Semantic Understanding
-Unlike keyword search, this system understands meaning. "What can you do?" and "What are your skills?" will return the same relevant information because they have similar semantic meaning.
-
-### Multi-Source Context
-The chatbot combines multiple information sources:
-- Personal documents (about me, skills, projects, education)
-- Previous similar Q&As from cache
-- Web search results (for general knowledge)
-- Conversation history (remembers context within a session)
-
-### First-Person Responses
-The LLM is instructed to respond AS me (Abdullah Akram), saying "I have built..." instead of "Abdullah has built...". This creates a more personal, engaging experience.
-
-### Protected Personal Data
-All my personal information is stored locally in text files and the ChromaDB database. The LLM doesn't store my data - it only uses it as context when generating responses.
-
-## Why I Built This
-
-I built this project to:
-1. Showcase my AI/ML and full-stack development skills
-2. Create an interactive portfolio experience for visitors
-3. Demonstrate practical RAG implementation
-4. Learn and apply cutting-edge AI technologies like LangChain and vector databases
-
-## Technical Specifications
-
-### Embedding Model
-- Model: sentence-transformers/all-MiniLM-L6-v2
-- Dimensions: 384
-- Runs locally using PyTorch
-- No API calls needed for embeddings
-
-### Vector Database
-- Database: ChromaDB
-- Index: HNSW (Hierarchical Navigable Small World)
-- Storage: Local disk (./chroma_db/)
-- Search: Cosine similarity
-
-### LLM
-- Model: Qwen/Qwen2.5-7B-Instruct
-- Provider: HuggingFace Inference API
-- Cost: Free
-- Context window: 128K tokens
-
-### Caching
-- Exact match threshold: 85% similarity
-- Cache TTL: 7 days
-- Max cache size: 1000 Q&A pairs
-
-### Document Processing
-- Chunk size: 1000 characters
-- Chunk overlap: 200 characters
-- Retriever K: 5 documents per query
-
-## How to Ask Questions
-
-You can ask me anything about:
-- My background and who I am
-- My technical skills and technologies I know
-- Projects I've built
-- My education
-- My work experience
-- How to contact me
-- How this chatbot works (like you're doing now!)
-
-For general knowledge questions (like "What is React?"), I'll search the web and provide accurate information.
+- **Backend**: HuggingFace Spaces (Docker container) - https://abdullah7570-personal-rag-chatbot.hf.space
+- **Frontend**: Vercel (auto-deploys from GitHub) - https://personal-rag-chatbot.vercel.app
+- **Source Code**: GitHub - https://github.com/iamabdullah1/personal-rag-llm-app
+- **Total Cost**: $0/month (all free tiers)
 
 ## Project Structure
 
@@ -162,27 +177,37 @@ For general knowledge questions (like "What is React?"), I'll search the web and
 personal-rag-app/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI application
-│   │   ├── config.py            # Settings
-│   │   ├── routers/chat.py      # API endpoints
+│   │   ├── main.py              # FastAPI application (v2.0.0, lifespan pattern)
+│   │   ├── config.py            # Settings (Groq, Tavily, GitHub, RAG params)
+│   │   ├── routers/chat.py      # API endpoints (health, chat, stream)
 │   │   └── services/
-│   │       ├── rag_service.py   # Main RAG orchestrator
-│   │       ├── vectorstore.py   # ChromaDB & embeddings
-│   │       ├── semantic_cache.py # Caching system
-│   │       └── conversation_store.py # Session history
-│   ├── data/personal/           # My personal information files
+│   │       ├── rag_service.py   # Agentic RAG orchestrator (Groq + tool calling)
+│   │       ├── tools.py         # 3 shared tools (knowledge, web, GitHub)
+│   │       ├── vectorstore.py   # ChromaDB & embeddings setup
+│   │       ├── semantic_cache.py # 0.95 threshold cache (LRU, 7-day TTL)
+│   │       └── conversation_store.py # Session history (10 msg, 24hr TTL)
+│   ├── mcp_server.py            # MCP server for Claude Desktop / Cursor
+│   ├── data/personal/           # My personal information files (9 documents)
 │   ├── chroma_db/               # Vector database storage
 │   └── ingest_data.py           # Data ingestion script
 └── frontend/
-    └── src/App.jsx              # React chat interface
+    └── src/App.jsx              # React chat interface (SSE, tool status, dark mode)
 ```
 
-## Performance
+## How to Ask Questions
 
-- Cache hit (exact match): ~50ms response time
-- Full pipeline (no cache): 2-3 seconds
-- Embedding generation: ~20ms
-- Vector search: ~50ms
-- LLM API call: ~2 seconds (varies)
+You can ask me anything about:
+- My background and who I am
+- My technical skills and technologies I know
+- Projects I've built (including this AI chatbot and MCP server)
+- My education
+- My work experience (including AI/MCP development)
+- How to contact me (including my LinkedIn)
+- My LinkedIn profile
+- My GitHub repositories and stats
+- How this chatbot works technically
+- About MCP servers and my experience building them
+- About agentic AI and tool calling
+- General knowledge questions (I'll search the web)
 
-This project demonstrates my expertise in AI, machine learning, Python, FastAPI, React, and building production-ready applications.
+This project demonstrates my expertise in Agentic AI, MCP protocol, Groq LLM integration, RAG systems, Python, FastAPI, React, and building production-ready AI applications.
