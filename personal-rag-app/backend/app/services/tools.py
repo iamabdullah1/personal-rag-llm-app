@@ -44,7 +44,11 @@ async def search_personal_knowledge(query: str) -> Dict[str, Any]:
         for doc in docs:
             results.append({
                 "content": doc.page_content,
-                "source": doc.metadata.get("source", "Personal Profile")
+                "source": doc.metadata.get("source", "Personal Profile"),
+                "category": doc.metadata.get("category", "general"),
+                "topic": doc.metadata.get("topic", "unknown"),
+                "document_title": doc.metadata.get("document_title", "Unknown"),
+                "chunk_index": doc.metadata.get("chunk_index", -1),
             })
 
         if not results:
