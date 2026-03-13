@@ -159,22 +159,32 @@ function App() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let fullMessage = ''
+      let sseBuffer = '' // Buffer for incomplete SSE lines across chunks
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
+        // Prepend any leftover buffer from the previous chunk
+        const chunk = sseBuffer + decoder.decode(value, { stream: true })
+        sseBuffer = ''
+
         const lines = chunk.split('\n')
 
+        // The last element might be an incomplete line — save it for the next chunk
+        if (!chunk.endsWith('\n')) {
+          sseBuffer = lines.pop()
+        }
+
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          const trimmedLine = line.trim()
+          if (trimmedLine.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6))
+              const data = JSON.parse(trimmedLine.slice(6))
               if (data.token) {
                 fullMessage += data.token
                 setStreamingMessage(fullMessage)
-                setToolStatus('') // Clear tool status when tokens start
+                setToolStatus('')
               }
               if (data.tool_call) {
                 const toolNames = {
@@ -200,7 +210,7 @@ function App() {
                 setStreamingMessage('')
                 setToolStatus('')
               }
-            } catch (e) { /* ignore JSON parse errors for partial chunks */ }
+            } catch (e) { /* JSON parse error — line was truly malformed */ }
           }
         }
       }
