@@ -9,6 +9,7 @@ import time
 from collections import defaultdict
 import asyncio
 from contextlib import asynccontextmanager
+from app.services.vectorstore import vectorstore_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -123,6 +124,15 @@ static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.isdir(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
+
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint that also pre-warms embedding model and ChromaDB."""
+    # Pre-warm embedding model
+    _ = vectorstore_service.embeddings
+    # Pre-warm ChromaDB
+    _ = vectorstore_service.get_vectorstore()
+    return {"status": "ok", "model": settings.groq_model}
 
 if __name__ == "__main__":
     import uvicorn

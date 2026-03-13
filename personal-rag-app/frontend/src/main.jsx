@@ -8,3 +8,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>,
 )
+
+// --- Keep-alive timer to prevent backend sleep ---
+function keepAlivePing() {
+  fetch('/api/health').catch(() => {});
+}
+
+// Ping every 4 minutes (240,000 ms)
+setInterval(keepAlivePing, 240000);

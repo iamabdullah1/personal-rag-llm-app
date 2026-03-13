@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     pinecone_index_name: str = "personal-rag"
     
     # Groq LLM Settings
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     
     # GitHub
     github_username: str = "iamabdullah1"
