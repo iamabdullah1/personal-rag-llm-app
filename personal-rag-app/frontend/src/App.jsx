@@ -288,8 +288,8 @@ function App() {
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
               <Bot size={16} className="text-white" />
             </div>
-            <div className="max-w-[80%] rounded-2xl rounded-bl-none px-5 py-3 bg-white dark:bg-[#2f2f2f] border border-gray-100 dark:border-gray-700 shadow-sm text-sm" style={{ whiteSpace: 'pre-wrap' }}>
-              {streamingMessage}
+            <div className="max-w-[80%] rounded-2xl rounded-bl-none px-5 py-3 bg-white dark:bg-[#2f2f2f] border border-gray-100 dark:border-gray-700 shadow-sm prose dark:prose-invert prose-sm">
+              <ReactMarkdown>{streamingMessage}</ReactMarkdown>
               <span className="inline-block w-2 h-4 bg-blue-500 ml-1 animate-pulse"></span>
             </div>
           </div>
