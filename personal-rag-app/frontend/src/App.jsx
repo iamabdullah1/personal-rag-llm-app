@@ -1,7 +1,34 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Send, Plus, Mic, Moon, Sun, Monitor, User, Bot, Trash2 } from 'lucide-react'
 import './App.css'
+
+// Memoized message bubble — prevents re-rendering finalized messages during streaming
+const MessageBubble = memo(({ msg }) => {
+  if (msg.role === 'user') {
+    return (
+      <div className="flex gap-4 justify-end">
+        <div className="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm bg-blue-600 text-white rounded-br-none">
+          {msg.content}
+        </div>
+        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0 mt-1">
+          <User size={16} />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-4 justify-start">
+      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
+        <Bot size={16} className="text-white" />
+      </div>
+      <div className="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm bg-white dark:!bg-[#2f2f2f] dark:!text-[#ececf1] border border-gray-100 dark:border-gray-700/50 rounded-bl-none prose dark:prose-invert prose-sm">
+        <ReactMarkdown>{msg.content}</ReactMarkdown>
+      </div>
+    </div>
+  )
+})
 
 const STORAGE_KEY = 'rag_session_id'
 const THEME_KEY = 'rag_theme'
@@ -20,6 +47,7 @@ function App() {
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
   const timeoutRef = useRef(null)
+  const msgIdRef = useRef(0)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -74,6 +102,7 @@ function App() {
             const data = await response.json()
             if (data.messages && data.messages.length > 0) {
               const restoredMessages = data.messages.map(msg => ({
+                id: ++msgIdRef.current,
                 role: msg.role,
                 content: msg.content
               }))
@@ -109,7 +138,7 @@ function App() {
     // 45-second timeout to prevent infinite loading
     timeoutRef.current = setTimeout(() => {
       abortControllerRef.current?.abort()
-      setMessages(prev => [...prev, { role: 'error', content: 'Request timed out. Please try again.' }])
+      setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'error', content: 'Request timed out. Please try again.' }])
       setStreamingMessage('')
       setToolStatus('')
       setLoading(false)
@@ -159,7 +188,7 @@ function App() {
               if (data.done) {
                 receivedDone = true
                 if (fullMessage.trim()) {
-                  setMessages(prev => [...prev, { role: 'assistant', content: fullMessage.trim() }])
+                  setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'assistant', content: fullMessage.trim() }])
                 }
                 setStreamingMessage('')
                 setToolStatus('')
@@ -167,7 +196,7 @@ function App() {
               }
               if (data.error) {
                 receivedDone = true
-                setMessages(prev => [...prev, { role: 'error', content: data.error }])
+                setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'error', content: data.error }])
                 setStreamingMessage('')
                 setToolStatus('')
               }
@@ -178,14 +207,14 @@ function App() {
 
       // GUARD: If stream ended without a done/error event, finalize the message
       if (!receivedDone && fullMessage.trim()) {
-        setMessages(prev => [...prev, { role: 'assistant', content: fullMessage.trim() }])
+        setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'assistant', content: fullMessage.trim() }])
         setStreamingMessage('')
         setToolStatus('')
       }
 
     } catch (error) {
       if (error.name !== 'AbortError') {
-        setMessages(prev => [...prev, { role: 'error', content: 'Sorry, something went wrong. Please try again.' }])
+        setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'error', content: 'Sorry, something went wrong. Please try again.' }])
         setStreamingMessage('')
         setToolStatus('')
       }
@@ -201,7 +230,7 @@ function App() {
     if (!input.trim() || loading) return
     const userMessage = input.trim()
     setInput('')
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setMessages(prev => [...prev, { id: ++msgIdRef.current, role: 'user', content: userMessage }])
     await sendMessageStreaming(userMessage)
   }
 
@@ -260,27 +289,8 @@ function App() {
           </div>
         )}
 
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-1">
-                <Bot size={16} className="text-white" />
-              </div>
-            )}
-
-            <div className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${msg.role === 'user'
-              ? 'bg-blue-600 text-white rounded-br-none'
-              : 'bg-white dark:!bg-[#2f2f2f] dark:!text-[#ececf1] border border-gray-100 dark:border-gray-700/50 rounded-bl-none prose dark:prose-invert prose-sm'
-              }`}>
-              {msg.role === 'user' ? msg.content : <ReactMarkdown>{msg.content}</ReactMarkdown>}
-            </div>
-
-            {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0 mt-1">
-                <User size={16} />
-              </div>
-            )}
-          </div>
+        {messages.map((msg) => (
+          <MessageBubble key={msg.id} msg={msg} />
         ))}
 
         {streamingMessage && (
