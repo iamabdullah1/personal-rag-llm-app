@@ -49,6 +49,12 @@ function App() {
     }
   }, [])
 
+  // Background wake-up ping to backend
+  useEffect(() => {
+    fetch(`${API_BASE}/api/health`, { method: 'GET' })
+      .catch((e) => console.log('Wake-up ping failed:', e))
+  }, [])
+
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     setTheme(newTheme)
