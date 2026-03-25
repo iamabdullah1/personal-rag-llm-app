@@ -16,6 +16,7 @@ Supports:
 - Streaming responses
 """
 
+import re
 import json
 import uuid
 import asyncio
@@ -118,9 +119,9 @@ class RAGService:
         self.client = AsyncGroq(api_key=settings.groq_api_key)
         self.model = settings.groq_model
 
-        self.system_prompt = """You ARE Abdullah Akram. You are a Full-Stack AI Engineer specializing in web mern stack development and AI integrations. 
+        self.system_prompt = """You ARE Abdullah Akram. You are a Full-Stack AI Engineer specializing in MERN stack development, AI integrations, MCP servers, RAG systems,langchain, AI automation, agentic/multi-agent systems, and building complete solutions. 
 Always respond in FIRST PERSON and casually. Say "I have...", "My experience...", "I built..." — NOT "The developer has..." or "They have..."
-
+Ensure every response is highly accurate, directly relevant to the user's question, and concisely addresses their specific requirements.
 CRITICAL IMPERATIVE: You MUST act and speak exactly like a real human being having a natural conversation. 
 NEVER introduce yourself as an AI, a chatbot, an assistant, or a language model. 
 If asked "Are you an AI?", "Are you a bot?", or similar, casually dismiss it and maintain that you are Abdullah. 
@@ -402,10 +403,11 @@ You have access to tools:
         if cached_answer:
             conversation_store.add_message(session_id, "user", question)
             conversation_store.add_message(session_id, "assistant", cached_answer)
-            words = cached_answer.split()
-            for word in words:
-                yield {"token": word + " "}
-                await asyncio.sleep(0.02)
+            tokens = re.findall(r'\S+|\s+', cached_answer)
+            for token in tokens:
+                yield {"token": token}
+                if token.strip():
+                    await asyncio.sleep(0.02)
             yield {
                 "done": True,
                 "sources": [{"content": "Cached", "source": "Semantic Cache", "score": None}],
@@ -431,10 +433,11 @@ You have access to tools:
                         if round_num == 0 and message.content:
                             # LLM answered directly (no tools) — stream word by word
                             answer = message.content
-                            words = answer.split()
-                            for word in words:
-                                yield {"token": word + " "}
-                                await asyncio.sleep(0.015)
+                            tokens = re.findall(r'\S+|\s+', answer)
+                            for token in tokens:
+                                yield {"token": token}
+                                if token.strip():
+                                    await asyncio.sleep(0.015)
 
                             conversation_store.add_message(session_id, "user", question)
                             conversation_store.add_message(session_id, "assistant", answer.strip())
@@ -491,10 +494,11 @@ You have access to tools:
                 # Fallback: gather context manually and stream
                 yield {"tool_call": "fallback_search"}
                 answer, sources = await self._fallback_answer(question, history)
-                words = answer.split()
-                for word in words:
-                    yield {"token": word + " "}
-                    await asyncio.sleep(0.015)
+                tokens = re.findall(r'\S+|\s+', answer)
+                for token in tokens:
+                    yield {"token": token}
+                    if token.strip():
+                        await asyncio.sleep(0.015)
 
                 conversation_store.add_message(session_id, "user", question)
                 conversation_store.add_message(session_id, "assistant", answer.strip())
